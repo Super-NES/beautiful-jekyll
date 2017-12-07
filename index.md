@@ -15,7 +15,9 @@ Let's quickly review what we mean by text editor. A text editor basically allows
 
 A character can be inserted or deleted from the text simply by referencing a positional index. To insert a "C" at the beginning of the text, you perform the operation `insert("C", 0)`, and to then delete the "H", you perform the operation `delete(1)`. Note that depending on where a character is inserted or deleted, preceding or succeeding characters must update their positional indices.
 
+<center>
 ![one](blogImgs/one.png "positional indices")
+</center>
 <small>
 **Local positional indices change as you type.**
 </small>
@@ -30,7 +32,9 @@ Given these requirements, can we apply changes to our collaborative editor in th
 
 Let's try to insert "C" and delete "H" as we did in the previous example. This time, however, we'll have two different users apply one of the operations first and then apply the other operation received from the other user.
 
+<center>
 ![two](blogImgs/two.png "")
+</center>
 <small>
 **TRYING TO INSERT AND DELETE SIMULTANEOUSLY**
 </small>
@@ -39,7 +43,9 @@ Oh no! Each user's document looks different. This demonstrates that changing the
 
 This time, let's say both users want to delete the "H" from "CHAT".
 
+<center>
 ![three](blogImgs/three.png "")
+</center>
 <small>
 **TRYING TO DELETE THE SAME CHARACTER**
 </small>
@@ -61,7 +67,9 @@ One solution is that instead of blindly applying received operations, we first c
 
 Returning to an earlier example, when User1 receives the `delete(0)` operation from User2, OT realizes that since User1 inserted a new character at position 0, User2's operation must be transformed to `delete(1)` before being applied.
 
+<center>
 ![four](blogImgs/four.png "")
+</center>
 <small>
 **OT EXAMPLE OF CONCURRENT INSERT/DELETE**
 </small>
@@ -84,7 +92,9 @@ Therefore, a CRDT adds the requirement that each character be globally unique. T
 
 With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our example.
 
+<center>
 ![five](blogImgs/five.png "")
+</center>
 <small>
 **NEW IMAGE OF BOTH USERS DELETING THE SAME CHARACTER**
 </small>
@@ -95,7 +105,9 @@ CRDTs accomplish this by employing fractional indices. Instead of inserting the 
 
 In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relation to) "C" and "A".
 
+<center>
 ![six](blogImgs/six.png "")
+</center>
 <small>
 **NEW IMAGE OF USERS INSERTING AND DELETING NEARBY CHARACTERS**
 </small>
@@ -108,14 +120,18 @@ At this point, we have a real-time, collaborative text editor. Our editor allows
 
 The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
 
+<center>
 ![seven](blogImgs/seven.png "")
+</center>
 <small>
 **CLIENT-SERVER RELAY ARCHITECTURE**
 </small>
 
 We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from just a few ms to 200-300 ms.
 
+<center>
 ![eight](blogImgs/eight.png "")
+</center>
 <small>
 **US MAP AND LATENCY SPEEDS**
 </small>
@@ -130,7 +146,9 @@ And finally, a central server introduces a single point-of-failure. If the serve
 
 We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
 
+<center>
 ![nine](blogImgs/nine.png "")
+</center>
 <small>
 **P2P NETWORK**
 </small>
@@ -147,7 +165,9 @@ The application uses that Peer ID to create and display a "Sharing Link" to the 
 
 To implement the signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com). It takes care of a lot of this stuff behind the scenes for us. For example, when a user attempts to connect to another user, the signaling server brokers the connection by providing the target user's location (or IP address) to the connecting user. The connecting user then uses the IP address to establish a **UDP** connection, and once established, content can be sent directly between users.
 
+<center>
 ![ten](blogImgs/ten.png "")
+</center>
 <small>
 **SIGNALING PROCESS**
 </small>
@@ -158,7 +178,9 @@ It's critical to understand that while WebRTC relies on a central signaling serv
 
 Since UDP does not guarantee in-order packet delivery, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
 
+<center>
 ![eleven](blogImgs/eleven.png "")
+</center>
 <small>
 **USER RECEIVING A DELETE BEFORE INSERT**
 </small>
@@ -181,7 +203,9 @@ When the 2nd person launched an instance of the app, even though they are using 
 
 As a peer, as long as you are connected to at least one other peer in the network, you should receive changes made by any peer, and changes you make should eventually reach every peer.
 
+<center>
 ![twelve](blogImgs/twelve.png "")
+</center>
 <small>
 **DIAGRAM OF THIS**
 </small>
@@ -194,7 +218,9 @@ In the case of 2 peers connected to 1 root peer, if the root peer leaves, both r
 
 Network Balancing: To solve this, we introduced the idea of a "connection request". When a new peer clicks an existing peer's sharing link, it doesn't automatically connect to them. Instead, it requests a connection. The peer receiving this request then evaluates whether it wants to accept the request or forward the request on to another peer in the network. If the peer's number of connections is greater than half the network (or 5), then it won't accept the request. Let's show an example.
 
+<center>
 ![thirteen](blogImgs/thirteen.png "")
+</center>
 <small>
 **DIAGRAM**
 </small>
