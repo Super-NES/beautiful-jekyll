@@ -23,6 +23,7 @@ description: A virtual proof that name is awesome!
 
 # List of links in the navigation bar
 navbar-links:
+  Home: "index"
   Team: "team"
   GitHub Project: "https://github.com/Super-NES/conclaveg"
 
