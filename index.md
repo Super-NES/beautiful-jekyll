@@ -30,13 +30,19 @@ Given these requirements, can we apply changes to our collaborative editor in th
 
 Let's try to insert "C" and delete "H" as we did in the previous example. This time, however, we'll have two different users apply one of the operations first and then apply the other operation received from the other user.
 
-INSERT IMAGE OF TRYING TO INSERT AND DELETE SIMULTANEOUSLY
+![two](blogImgs/two.png "")
+<small>
+**TRYING TO INSERT AND DELETE SIMULTANEOUSLY**
+</small>
 
 Oh no! Each user's document looks different. This demonstrates that changing the order of operations produces different results. In mathematical terms, the operations do not commute (A + B !== B + A).
 
 This time, let's say both users want to delete the "H" from "CHAT".
 
-INSERT IMAGE OF TRYIGN TO DELETE THE SAME CHARACTER
+![three](blogImgs/three.png "")
+<small>
+**TRYING TO DELETE THE SAME CHARACTER**
+</small>
 
 Oh no! While each user's document looks the same, they both ended up with "AT" instead of "CAT". This demonstrates that repeating the same operation multiple times produces different results. In mathematical terms, the delete operations are not idempotent (A * 1 * 1 !== A).
 
@@ -55,7 +61,10 @@ One solution is that instead of blindly applying received operations, we first c
 
 Returning to an earlier example, when User1 receives the `delete(0)` operation from User2, OT realizes that since User1 inserted a new character at position 0, User2's operation must be transformed to `delete(1)` before being applied.
 
-INSERT OT EXAMPLE OF CONCURRENT INSERT/DELETE
+![four](blogImgs/four.png "")
+<small>
+**OT EXAMPLE OF CONCURRENT INSERT/DELETE**
+</small>
 
 Without showing our other example, we can imagine that when a user tries to delete a character that's already been deleted, OT recognizes this and skips the operation. So, in basic terms, OT provides a strategy to achieve commutativity and idempotency.
 
@@ -75,7 +84,10 @@ Therefore, a CRDT adds the requirement that each character be globally unique. T
 
 With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our example.
 
-NEW IMAGE OF BOTH USERS DELETING THE SAME CHARACTER
+![five](blogImgs/five.png "")
+<small>
+**NEW IMAGE OF BOTH USERS DELETING THE SAME CHARACTER**
+</small>
 
 The 2nd requirement that CRDTs add is providing the global relative position of each created character object.
 
@@ -83,7 +95,10 @@ CRDTs accomplish this by employing fractional indices. Instead of inserting the 
 
 In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relation to) "C" and "A".
 
-NEW IMAGE OF USERS INSERTING AND DELETING NEARBY CHARACTERS
+![six](blogImgs/six.png "")
+<small>
+**NEW IMAGE OF USERS INSERTING AND DELETING NEARBY CHARACTERS**
+</small>
 
 Even though User2 simultaneously deletes "A" at position 1, "H" is still be placed after the "C". The user's intention is preserved and the documents converge to the same result. By using fractional indices, CRDTs improve the commutativity; the order of operations doesn't matter anymore.
 
@@ -93,11 +108,17 @@ At this point, we have a real-time, collaborative text editor. Our editor allows
 
 The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
 
-INSERT IMAGE OF CLIENT-SERVER RELAY ARCHITECTURE
+![seven](blogImgs/seven.png "")
+<small>
+**CLIENT-SERVER RELAY ARCHITECTURE**
+</small>
 
 We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from just a few ms to 200-300 ms.
 
-INSERT IMAGE OF US MAP AND LATENCY SPEEDS
+![eight](blogImgs/eight.png "")
+<small>
+**US MAP AND LATENCY SPEEDS**
+</small>
 
 The second limitation is that a central server is costly to scale. As the number of users increases, the amount of operations that must be relayed increases accordingly. To support this increase in work, the server would require additional resources which costs money.
 
@@ -109,7 +130,10 @@ And finally, a central server introduces a single point-of-failure. If the serve
 
 We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
 
-INSERT IMAGE OF P2P NETWORK
+![nine](blogImgs/nine.png "")
+<small>
+**P2P NETWORK**
+</small>
 
 For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also do what the server was original role of relaying operations to any other nodes they're connected to.
 
@@ -123,7 +147,10 @@ The application uses that Peer ID to create and display a "Sharing Link" to the 
 
 To implement the signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com). It takes care of a lot of this stuff behind the scenes for us. For example, when a user attempts to connect to another user, the signaling server brokers the connection by providing the target user's location (or IP address) to the connecting user. The connecting user then uses the IP address to establish a **UDP** connection, and once established, content can be sent directly between users.
 
-INSERT IMAGE OF SIGNALING PROCESS
+![ten](blogImgs/ten.png "")
+<small>
+**SIGNALING PROCESS**
+</small>
 
 It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
 
@@ -131,7 +158,10 @@ It's critical to understand that while WebRTC relies on a central signaling serv
 
 Since UDP does not guarantee in-order packet delivery, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
 
-INSERT IMAGE OF USER RECEIVING A DELETE BEFORE INSERT
+![eleven](blogImgs/eleven.png "")
+<small>
+**USER RECEIVING A DELETE BEFORE INSERT**
+</small>
 
 To solve the out-of-order messages problem, we implemented what's called a **Version Vector**. It's a fancy name for a simple strategy that tracks which operations we've received from each user.
 
@@ -151,7 +181,10 @@ When the 2nd person launched an instance of the app, even though they are using 
 
 As a peer, as long as you are connected to at least one other peer in the network, you should receive changes made by any peer, and changes you make should eventually reach every peer.
 
-INSERT DIAGRAM OF THIS
+![twelve](blogImgs/twelve.png "")
+<small>
+**DIAGRAM OF THIS**
+</small>
 
 CRDTSync: The first issue we found is when a peer joins the network after other peers have been already collaborating on the document. The new peer needs to be provided a copy of the CRDT from one of the peers in the network. When a new peer attempts to join the shared document by connecting to a target peer, the target peer responds by sending a copy of their CRDT and version vector to the new peer.
 
@@ -161,7 +194,10 @@ In the case of 2 peers connected to 1 root peer, if the root peer leaves, both r
 
 Network Balancing: To solve this, we introduced the idea of a "connection request". When a new peer clicks an existing peer's sharing link, it doesn't automatically connect to them. Instead, it requests a connection. The peer receiving this request then evaluates whether it wants to accept the request or forward the request on to another peer in the network. If the peer's number of connections is greater than half the network (or 5), then it won't accept the request. Let's show an example.
 
-INSERT DIAGRAM
+![thirteen](blogImgs/thirteen.png "")
+<small>
+**DIAGRAM**
+</small>
 
 In this diagram, 3 peers are connected to the root peer. When a 3rd peer attempts to connect, the root peer has 3 existing connections which is greater than half the network (4/2 = 2). Therefore, instead of accepting the connection request, it will forward the request to one of its other connections, resulting in a more balanced network. Now if any peer were to leave the room, there would still be a way for the remaining peers to communicate.
 
