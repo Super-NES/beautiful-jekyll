@@ -115,36 +115,42 @@ CRDTs accomplish this by employing fractional indices. Instead of inserting the 
 
 In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relation to) "C" and "A".
 
-<center>
-![six](blogImgs/six.png "")
-</center>
-<small>
-**NEW IMAGE OF USERS INSERTING AND DELETING NEARBY CHARACTERS**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/six.png" alt="fractional indices" />
+  </center>
+  <figcaption>
+    <small><strong>Indices are relative and fractional instead of absolute.</strong></small>
+  </figcaption>
+</figure>
 
 Even though User2 simultaneously deletes "A" at position 1, "H" is still be placed after the "C". The user's intention is preserved and the documents converge to the same result. By using fractional indices, CRDTs improve the commutativity; the order of operations doesn't matter anymore.
 
-At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations. Building that that was pretty challenging by itself. But we wondered how we could make our application even better?
+At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations. Building that was pretty challenging by itself. But we wondered how we could make our application even better.
 
 ### What are the limitations of using a central server?
 
 The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
 
-<center>
-![seven](blogImgs/seven.png "")
-</center>
-<small>
-**CLIENT-SERVER RELAY ARCHITECTURE**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/seven.png" alt="client-server" />
+  </center>
+  <figcaption>
+    <small><strong>Two users connected through a central relay server.</strong></small>
+  </figcaption>
+</figure>
 
 We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from just a few ms to 200-300 ms.
 
-<center>
-![eight](blogImgs/eight.png "")
-</center>
-<small>
-**US MAP AND LATENCY SPEEDS**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/eight.png" alt="latency" />
+  </center>
+  <figcaption>
+    <small><strong>Latency across the United States.</strong></small>
+  </figcaption>
+</figure>
 
 The second limitation is that a central server is costly to scale. As the number of users increases, the amount of operations that must be relayed increases accordingly. To support this increase in work, the server would require additional resources which costs money.
 
@@ -156,18 +162,20 @@ And finally, a central server introduces a single point-of-failure. If the serve
 
 We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
 
-<center>
-![nine](blogImgs/nine.png "")
-</center>
-<small>
-**P2P NETWORK**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/nine.png" alt="p2p" />
+  </center>
+  <figcaption>
+    <small><strong>Peer-to-peer message relay network.</strong></small>
+  </figcaption>
+</figure>
 
-For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also do what the server was original role of relaying operations to any other nodes they're connected to.
+For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also fill the original role of the server by relaying operations to any other nodes they're connected to.
 
 ### How will users send messages directly to each other?
 
-To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol. WebRTC was designed to for plugin-free real-time communication over peer-to-peer connections. It's primarily intended to support audio or video calling but its simplicity makes it pretty perfect for our use case.
+To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol. WebRTC was designed for plugin-free real-time communication over peer-to-peer connections. It's primarily intended to support audio or video calling but its simplicity makes it pretty perfect for our use case.
 
 While WebRTC enables our users to communicate directly, a small central server is required to initiate the connection between users in a process called "signaling". When a user first opens Conclave, the application establishes a WebSocket connection with the server. Using that connection, the app "registers" with the signaling server, essentially letting it know where it's located. The server responds by assigning a random, unique **Peer ID** to the user.
 
@@ -175,12 +183,14 @@ The application uses that Peer ID to create and display a "Sharing Link" to the 
 
 To implement the signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com). It takes care of a lot of this stuff behind the scenes for us. For example, when a user attempts to connect to another user, the signaling server brokers the connection by providing the target user's location (or IP address) to the connecting user. The connecting user then uses the IP address to establish a **UDP** connection, and once established, content can be sent directly between users.
 
-<center>
-![ten](blogImgs/ten.png "")
-</center>
-<small>
-**SIGNALING PROCESS**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/ten.png" alt="WebRTC" />
+  </center>
+  <figcaption>
+    <small><strong>PeerJS server brokers WebRTC data connection.</strong></small>
+  </figcaption>
+</figure>
 
 It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
 
@@ -188,12 +198,14 @@ It's critical to understand that while WebRTC relies on a central signaling serv
 
 Since UDP does not guarantee in-order packet delivery, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
 
-<center>
-![eleven](blogImgs/eleven.png "")
-</center>
-<small>
-**USER RECEIVING A DELETE BEFORE INSERT**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/eleven.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>What if a delete operation arrives before its corresponding insert?</strong></small>
+  </figcaption>
+</figure>
 
 To solve the out-of-order messages problem, we implemented what's called a **Version Vector**. It's a fancy name for a simple strategy that tracks which operations we've received from each user.
 
