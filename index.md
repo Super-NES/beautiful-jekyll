@@ -15,10 +15,9 @@ Let's quickly review what we mean by text editor. A text editor basically allows
 
 A character can be inserted or deleted from the text simply by referencing a positional index. To insert a "C" at the beginning of the text, you perform the operation `insert("C", 0)`, and to then delete the "H", you perform the operation `delete(1)`. Note that depending on where a character is inserted or deleted, preceding or succeeding characters must update their positional indices.
 
-![one](blogImgs/one.png)
-Format: ![Alt Text](url)
+![one](blogImgs/one.png "positional indices")
 <small>
-**Indices change as you type**
+**Local positional indices change as you type.**
 </small>
 
 ### What is a collaborative text editor?
