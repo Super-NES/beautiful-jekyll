@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Conclave
-subtitle: A real time, peer-to-peer, collaborative markdown editor
+subtitle: Collaborate in private
 use-site-title: true
 ---
 
