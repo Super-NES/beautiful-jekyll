@@ -9,7 +9,6 @@ use-site-title: true
 
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we took from our initial idea through our research of current academic literature to our design and implementation of the final product.
 
-<hr />
 ### What is a text editor?
 
 Let's quickly review what we mean by text editor. A text editor basically allows you to insert or delete characters and then save the resulting text to a file. Each character has a value and a whole number index that determines its position within all other characters. For example, with the text "HAT", the character value "H" has position 0, "A" has position 1, and "T" has position 2.
@@ -23,7 +22,6 @@ A character can be inserted or deleted from the text simply by referencing a pos
   <figcaption>Local positional indices change as you type.</figcaption>
 </figure>
 
-<hr />
 ### What is a collaborative text editor?
 
 Let's say we now have two users in two different locations who want to edit a document at the same time. To provide the feeling of a "real-time collaborative" experience, both users should be able to edit the document at any time (i.e. no locking) and all changes made by a user should be immediately available for them to see on their screen.
@@ -63,7 +61,6 @@ As demonstrated in the two examples above, our solution must satisfy the two mat
 
 How can we solve this challenge?
 
-<hr />
 ### Operational Transformation
 
 One solution is that instead of blindly applying received operations, we first compare it to recent operations, and modify (or transform) it if necessary. This strategy is naturally called Operational Transformation (OT), and we'll represent it as a "black box" for now.
@@ -87,7 +84,6 @@ Operational Transformation was the first popular way to allow for collaborative 
 
 An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) were discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
 
-<hr />
 ### CRDTs
 
 The major difference with CRDTs is with how they create and store their characters. With one user typing in a text editor, each character requires only a value and a whole number positional index. In collaborative editing, we've seen that this simple requirement creates a couple problems with convergence and intention preservation.
@@ -120,7 +116,6 @@ Even though User2 simultaneously deletes "A" at position 1, "H" is still be plac
 
 At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations. Building that that was pretty challenging by itself. But we wondered how we could make our application even better?
 
-<hr />
 ### What are the limitations of using a central server?
 
 The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
@@ -147,7 +142,6 @@ The third limitation is that this design requires that our users trust the centr
 
 And finally, a central server introduces a single point-of-failure. If the server were to go down, all users immediately lose their ability to collaborate with each other.
 
-<hr />
 ### Peer-to-Peer Architecture
 
 We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
@@ -161,7 +155,6 @@ We can remove these limitations by switching to a peer-to-peer architecture wher
 
 For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also do what the server was original role of relaying operations to any other nodes they're connected to.
 
-<hr />
 ### How will users send messages directly to each other?
 
 To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol. WebRTC was designed to for plugin-free real-time communication over peer-to-peer connections. It's primarily intended to support audio or video calling but its simplicity makes it pretty perfect for our use case.
@@ -181,7 +174,6 @@ To implement the signaling and WebRTC messaging, we used a library called [PeerJ
 
 It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
 
-<hr />
 ### Version Vector
 
 Since UDP does not guarantee in-order packet delivery, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
@@ -201,7 +193,6 @@ In our specific use case, there's no reason we can't apply insert operations imm
 
 At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing our app to see if we could discover any additional limitations that we could address.
 
-<hr />
 ### Performance Testing
 
 ### NITINS NOTES FOR OPTIMIZATION SECTION

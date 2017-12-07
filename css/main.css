@@ -8,6 +8,7 @@ layout: null
 
 figcaption {
   border-top: solid 1px rgb(17, 117, 232);
+  padding-top: 5px;
 }
 
 body {
