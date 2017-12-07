@@ -19,7 +19,9 @@ A character can be inserted or deleted from the text simply by referencing a pos
   <center>
     <img src="blogImgs/one.png" alt="positional indices" />
   </center>
-  <figcaption>Local positional indices change as you type.</figcaption>
+  <figcaption>
+    <small><strong>Local positional indices change as you type.</strong></small>
+  </figcaption>
 </figure>
 
 ### What is a collaborative text editor?
