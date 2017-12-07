@@ -24,7 +24,7 @@ description: A virtual proof that name is awesome!
 # List of links in the navigation bar
 navbar-links:
   Team: "team"
-  GitHub Project: "https://github.com/Super-NES/conclave"
+  GitHub Project: "https://github.com/Super-NES/conclaveg"
 
 # Image to show in the navigation bar - image must be a square (width = height)
 # Remove this parameter if you don't want an image in the navbar
