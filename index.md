@@ -17,8 +17,6 @@ A character can be inserted or deleted from the text simply by referencing a pos
 
 ![in brackets](blogImgs/one.png "in quotes")
 
-INSERT IMAGE DISPLAYING CHARACTER VALUES AND INDICES
-
 ### What is a collaborative text editor?
 
 Let's say we now have two users in two different locations who want to edit a document at the same time. To provide the feeling of a "real-time collaborative" experience, both users should be able to edit the document at any time (i.e. no locking) and all changes made by a user should be immediately available for them to see on their screen.
