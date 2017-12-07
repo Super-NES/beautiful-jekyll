@@ -34,23 +34,27 @@ Given these requirements, can we apply changes to our collaborative editor in th
 
 Let's try to insert "C" and delete "H" as we did in the previous example. This time, however, we'll have two different users apply one of the operations first and then apply the other operation received from the other user.
 
-<center>
-![two](blogImgs/two.png "")
-</center>
-<small>
-**TRYING TO INSERT AND DELETE SIMULTANEOUSLY**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/two.png" alt="insert delete same time" />
+  </center>
+  <figcaption>
+    <small><strong>Insertion and deletion operations do not commute.</strong></small>
+  </figcaption>
+</figure>
 
 Oh no! Each user's document looks different. This demonstrates that changing the order of operations produces different results. In mathematical terms, the operations do not commute (A + B !== B + A).
 
 This time, let's say both users want to delete the "H" from "CHAT".
 
-<center>
-![three](blogImgs/three.png "")
-</center>
-<small>
-**TRYING TO DELETE THE SAME CHARACTER**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/three.png" alt="delete twice" />
+  </center>
+  <figcaption>
+    <small><strong>Duplicate deletion operations are not idempotent.</strong></small>
+  </figcaption>
+</figure>
 
 Oh no! While each user's document looks the same, they both ended up with "AT" instead of "CAT". This demonstrates that repeating the same operation multiple times produces different results. In mathematical terms, the delete operations are not idempotent (A * 1 * 1 !== A).
 
@@ -69,12 +73,14 @@ One solution is that instead of blindly applying received operations, we first c
 
 Returning to an earlier example, when User1 receives the `delete(0)` operation from User2, OT realizes that since User1 inserted a new character at position 0, User2's operation must be transformed to `delete(1)` before being applied.
 
-<center>
-![four](blogImgs/four.png "")
-</center>
-<small>
-**OT EXAMPLE OF CONCURRENT INSERT/DELETE**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/four.png" alt="OT insert and delete" />
+  </center>
+  <figcaption>
+    <small><strong>Insertion and deletion operations commute with OT.</strong></small>
+  </figcaption>
+</figure>
 
 Without showing our other example, we can imagine that when a user tries to delete a character that's already been deleted, OT recognizes this and skips the operation. So, in basic terms, OT provides a strategy to achieve commutativity and idempotency.
 
@@ -94,12 +100,14 @@ Therefore, a CRDT adds the requirement that each character be globally unique. T
 
 With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our example.
 
-<center>
-![five](blogImgs/five.png "")
-</center>
-<small>
-**NEW IMAGE OF BOTH USERS DELETING THE SAME CHARACTER**
-</small>
+<figure>
+  <center>
+    <img src="blogImgs/five.png" alt="CRDT delete twice" />
+  </center>
+  <figcaption>
+    <small><strong>Duplicate deletion operations are idempotent with a CRDT.</strong></small>
+  </figcaption>
+</figure>
 
 The 2nd requirement that CRDTs add is providing the global relative position of each created character object.
 
