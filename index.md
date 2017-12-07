@@ -18,6 +18,7 @@ A character can be inserted or deleted from the text simply by referencing a pos
 <center>
   <img src="blogImgs/one.png" alt="positional indices" />
 </center>
+<hr />
 <small>
 **Local positional indices change as you type.**
 </small>
