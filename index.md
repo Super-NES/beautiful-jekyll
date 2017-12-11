@@ -236,19 +236,49 @@ The link is unique to each user and is essentially a pointer to a particular use
 
 To implement signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com) which took care of a lot of this stuff behind the scenes for us. For example, when a user clicks another user's sharing link, it's essentially asking the signaling server to broker a connection between them. The server responds by providing the user with the other user's IP address, allowing the user to send messages to the other user.
 
+Since most internet users use wireless routers, the public IP address is found using a STUN server. The connecting user then uses the IP address to establish a WebRTC connection, and once established, content can be sent directly between users. In the case that a connection with the STUN server cannot be made and the WebRTC connection fails, a TURN server is used as a backup to send operations between users.
 
 <figure>
   <center>
-    <img src="blogImgs/ten.png" alt="WebRTC" />
+    <img src="blogImgs/webrtc.png" alt="WebRTC" />
   </center>
   <figcaption>
-    <small><strong>PeerJS server brokers WebRTC data connection.</strong></small>
+    <small><strong>Signaling server brokers WebRTC data connection.</strong></small>
   </figcaption>
 </figure>
 
+It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
+
+---
+### Is WebRTC Secure?
+
+One question we are often asked is *Is WebRTC secure and encrypted?* The answer to which is a resounding **YES**.
+
+<figure>
+  <center>
+    <img src="blogImgs/webrtc_stack.png" alt="WebRTC stack" />
+  </center>
+  <figcaption>
+    <small><strong>Courtesy of <a href="http://webrtc-security.github.io/">WebRTC Security</a></strong></small>
+  </figcaption>
+</figure>
+
+WebRTC uses the **UDP** transport protocol. UDP is a lightweight message protocol that allows it to send messages quickly and without waiting for a response from the other user.
+
+According to [WebRTC Security](http://webrtc-security.github.io/):
+
+> [STUN and TURN] are necessary to establish and maintain a peer-to-peer connection over UDP. DTLS is used to secure all data transfers between peers, as encryption is a mandatory feature of WebRTC. Finally, SCTP and SRTP are the application protocols used to multiplex the different streams, provide congestion and flow control, and provide partially reliable delivery and other additional services on top of UDP.
+
+> ...
+
+> Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
+
+You can rest assured that all the data transferred on Conclave is secure and protected from malicious man-in-the-middle attacks.
+
+---
 ### Version Vector
 
-Since UDP does not guarantee in-order packet delivery, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
+However, one drawback to UDP is that it does not guarantee in-order packet delivery. Therefore, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
 
 <figure>
   <center>
