@@ -163,6 +163,7 @@ Furthermore, since positions can be thought of as a tree structure, a recursive 
 </figure>
 
 At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to ensure commutative and idempotent operations.
+
 ---
 ### What are the limitations of using a central server?
 
@@ -247,12 +248,10 @@ Since most internet users use wireless routers, the public IP address is found u
   </figcaption>
 </figure>
 
-It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
-
 ---
 ### Is WebRTC Secure?
 
-One question we are often asked is *Is WebRTC secure and encrypted?* The answer to which is a resounding **YES**.
+One question we are often asked is *Is WebRTC secure and encrypted?* The answer is a resounding **YES**.
 
 <figure>
   <center>
@@ -267,10 +266,6 @@ WebRTC uses the **UDP** transport protocol. UDP is a lightweight message protoco
 
 According to [WebRTC Security](http://webrtc-security.github.io/):
 
-> [STUN and TURN] are necessary to establish and maintain a peer-to-peer connection over UDP. DTLS is used to secure all data transfers between peers, as encryption is a mandatory feature of WebRTC. Finally, SCTP and SRTP are the application protocols used to multiplex the different streams, provide congestion and flow control, and provide partially reliable delivery and other additional services on top of UDP.
-
-> ...
-
 > Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
 
 You can rest assured that all the data transferred on Conclave is secure and protected from malicious man-in-the-middle attacks.
@@ -278,22 +273,72 @@ You can rest assured that all the data transferred on Conclave is secure and pro
 ---
 ### Version Vector
 
-However, one drawback to UDP is that it does not guarantee in-order packet delivery. Therefore, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
+One drawback to UDP is that it does not guarantee in-order packet delivery. That means that our messages may be received in a different order than they were sent. This presents a potential issue. What if a user receives a message to delete a particular character before it's actually inserted that  character?
+
+Let's say we have 3 peers collaborating on a document. Two of the peers are next to each other while the third is far away. Peer1 types an "A" and sends the operation out to both peers. Since Peer2 is nearby, it quickly receives the operation but decides it doesn't like it and promptly deletes it.
 
 <figure>
   <center>
-    <img src="blogImgs/eleven.png" alt="version vector" />
+    <img src="blogImgs/insert-delete-VV-1.png" alt="version vector" />
   </center>
   <figcaption>
-    <small><strong>What if a delete operation arrives before its corresponding insert?</strong></small>
+    <small><strong>Peer1 inserts a character and Peer2 immediately deletes it.</strong></small>
   </figcaption>
 </figure>
 
-To solve the out-of-order messages problem, we implemented what's called a **Version Vector**. It's a fancy name for a simple strategy that tracks which operations we've received from each user.
+Now both the insert and delete operations are on their way to Peer 3. But due to the unpredictability of the Internet, the delete operation races past the insert operation.
 
-When a user broadcasts an operation, they also send along their **Site ID** and **Operation Counter** value. The Site ID indicates who originally sent the operation, and the Operation Counter indicates what number operation it is. The receiver can then look in its version vector to see if this operation is ready to be applied, or if it needs to wait to receive other operations first.
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-2.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>The delete operation arrives at Peer3 before the insert operation.</strong></small>
+  </figcaption>
+</figure>
 
-In our specific use case, there's no reason we can't apply insert operations immediately after receiving them. But we cannot apply a delete operation until we receive and apply it's corresponding insert operation first. So in the meantime, we place the delete operation in a **Deletion Buffer** until it's ready to be applied.
+What happens if the delete operation arrives at Peer3 before the insert operation? We wouldn't want to apply the delete first because there'd be nothing to delete and the operation would be lost. Later, when the insert is applied, Peer3's document would look different from the others. We need to find a way to wait to apply the delete operation only after we've applied the insert.
+
+To solve the out-of-order messages problem, we built what's called a **Version Vector**. It sounds fancy but it's simply a strategy that tracks which operations we've received from each user.
+
+Whenever an operation is sent out, in addition to the character object and whether it's an insertion or deletion, we also include the character's **Site ID** and **Operation Counter** value. The SiteID indicates who originally sent the operation, and the Counter indicates which operation number it is from that particular user.
+
+When a peer receives a delete operation, it's immediately placed in a **Deletion Buffer**. If it were an insert, we could just apply it immediately. But with deletes, we have to make sure the character has been inserted first.
+
+After every operation (insert or delete), the deletion buffer is "processed" to check if the characters have been inserted yet. In this example, the character has a SiteID of 1 and Counter of 24.
+
+To perform this check, Peer3 consults its version vector. Since Peer3 has only seen 23 operations from Peer1, the delete operation will remain in the buffer.
+
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-3.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>The delete operation is placed in and processed from a Deletion Buffer.</strong></small>
+  </figcaption>
+</figure>
+
+After some more time, the insert operation finally arrives at Peer3, and its version vector is updated to reflect that it's seen 24 operations from Peer1. Since we've received a new operation, we again process the deletion buffer. This time, when the deletion operation's character is compared to the version vector, the delete operation can be removed from the buffer and applied.
+
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-4.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>The delete operation is placed in and processed from a Deletion Buffer.</strong></small>
+  </figcaption>
+</figure>
+
+The logic described above is contained in the code snippet below. In addition, we've added a guard clause that prevents us from applying duplicate operations. In our peer-to-peer network, since peers are tasked with relaying operations, it's possible that a peer will receive operations that it's already applied. For every operation, the version vector is used to check if an operation has already been applied, and if so, just skip it with an early return.
+
+<figure>
+  <center>
+    <img src="blogImgs/handleRemoteOperation.png" alt="handleRemoteOperation code snippet" />
+  </center>
+  <figcaption>
+    <small><strong>The handleRemoteOperation method guards against the application of duplication operation, then applies inserts but places deletes into a buffer.</strong></small>
+  </figcaption>
+</figure>
 
 At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing our app to see if we could discover any additional limitations that we could address.
 
