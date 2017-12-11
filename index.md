@@ -140,14 +140,25 @@ CRDTs accomplish this by employing fractional indices. Instead of inserting the 
 
 Even though User2 simultaneously deletes "A" at position 1, "H" is still be placed after the "C". The user's intention is preserved and the documents converge to the same result. By using fractional indices, CRDTs improve the commutativity. The order of operations doesn't matter anymore.
 
-Another way to imagine fractional indices is as a tree.
+Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they are given available position IDs from the first level of the tree. However, if we try to create a position between two adjacent characters, we need to go to the next level of the tree and pick an available position from that level.
 
 <figure>
   <center>
-    <img src="blogImgs/six.png" alt="fractional indices" />
+    <img src="blogImgs/id_tree_2.png" alt="id tree" />
   </center>
   <figcaption>
-    <small><strong>Indices are relative and fractional instead of absolute.</strong></small>
+    <small><strong>Relative positions are like a tree</strong></small>
+  </figcaption>
+</figure>
+
+Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
+
+<figure>
+  <center>
+    <img src="blogImgs/id_algo.png" alt="id tree" />
+  </center>
+  <figcaption>
+    <small><strong>Simplified recursive algorithm to generate relative positions</strong></small>
   </figcaption>
 </figure>
 
