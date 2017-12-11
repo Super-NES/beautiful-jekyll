@@ -340,11 +340,20 @@ The logic described above is contained in the code snippet below. In addition, w
   </figcaption>
 </figure>
 
-At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing our app to see if we could discover any additional limitations that we could address.
+At this point, we've described the major components of our system architecture. Within every instance of our application, a custom-built CRDT works together with a Version Vector to make sure our document replicas all converge. The Messenger is responsible for sending and receiving WebRTC messages. And of course, the Editor allows a user to interact with their local copy of the shared document.
 
-### Performance Testing
+<figure>
+  <center>
+    <img src="blogImgs/system-architecture.png" alt="System Architecture" />
+  </center>
+  <figcaption>
+    <small><strong>Final System Architecture</strong></small>
+  </figcaption>
+</figure>
 
-### NITINS NOTES FOR OPTIMIZATION SECTION
+At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing the application to see if what new limitations we could address.
+
+### Optimizations
 
 The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
 
