@@ -314,7 +314,7 @@ To perform this check, Peer3 consults its version vector. Since Peer3 has only s
     <img src="blogImgs/insert-delete-VV-3.png" alt="version vector" />
   </center>
   <figcaption>
-    <small><strong>The delete operation is placed in and processed from a Deletion Buffer.</strong></small>
+    <small><strong>The first time the buffer is processed, the delete operation isn't ready to be applied by Peer3. </strong></small>
   </figcaption>
 </figure>
 
@@ -325,7 +325,7 @@ After some more time, the insert operation finally arrives at Peer3, and its ver
     <img src="blogImgs/insert-delete-VV-4.png" alt="version vector" />
   </center>
   <figcaption>
-    <small><strong>The delete operation is placed in and processed from a Deletion Buffer.</strong></small>
+    <small><strong>This time the delete operation can be applied by Peer3.</strong></small>
   </figcaption>
 </figure>
 
