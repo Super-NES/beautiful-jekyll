@@ -76,6 +76,10 @@ hr.small {
   height: 243px;
 }
 
+.sunny {
+  transform: rotate(180deg);
+}
+
 @media only screen and (max-width: 624px) {
   .team-member {
     width: 250px;
