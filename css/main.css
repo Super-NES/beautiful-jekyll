@@ -77,7 +77,8 @@ hr.small {
 }
 
 .sunny {
-  transform: rotate(180deg);
+  transform: scaleX(-1);
+  filter: FlipH;
 }
 
 @media only screen and (max-width: 624px) {
