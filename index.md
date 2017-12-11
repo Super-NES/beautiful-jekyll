@@ -164,6 +164,7 @@ Furthermore, since positions can be thought of as a tree structure, a recursive 
 
 At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations. Building that was pretty challenging by itself. But we wondered how we could make our application even better.
 
+---
 ### What are the limitations of using a central server?
 
 The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
@@ -177,7 +178,7 @@ The current system architecture relies on the client-server model of communicati
   </figcaption>
 </figure>
 
-We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from just a few ms to 200-300 ms.
+We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from ~10ms to 200-300 ms.
 
 <figure>
   <center>
@@ -188,12 +189,13 @@ We identified four main limitations with this design. The first is that all oper
   </figcaption>
 </figure>
 
-The second limitation is that a central server is costly to scale. As the number of users increases, the amount of operations that must be relayed increases accordingly. To support this increase in work, the server would require additional resources which costs money.
+The second limitation is that a central server is costly to scale. As the number of users increases, the amount of operations that must be relayed increases accordingly. To support this increase in work, the server would require additional resources which costs money. As a team creating an open source project, we wanted to minimize the financial cost as much as possible.
 
-The third limitation is that this design requires that our users trust the central server and anyone that has access to it. That could include the application developers (us in this case), the hosting service, and the government.
+The third limitation is that this design requires that our users trust the central server and anyone that has access to it. That could include the application developers (us in this case), the hosting service, and even the government.
 
 And finally, a central server introduces a single point-of-failure. If the server were to go down, all users immediately lose their ability to collaborate with each other.
 
+---
 ### Peer-to-Peer Architecture
 
 We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
@@ -209,11 +211,21 @@ We can remove these limitations by switching to a peer-to-peer architecture wher
 
 For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also fill the original role of the server by relaying operations to any other nodes they're connected to.
 
+---
 ### How will users send messages directly to each other?
 
-To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol. WebRTC was designed for plugin-free real-time communication over peer-to-peer connections. It's primarily intended to support audio or video calling but its simplicity makes it pretty perfect for our use case.
+To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol. WebRTC was designed for plugin-free real-time communication over peer-to-peer connections. It's primarily intended to support audio or video calling but its simplicity makes it well-suited for our use case.
 
 While WebRTC enables our users to communicate directly, a small central server is required to initiate the connection between users in a process called "signaling". When a user first opens Conclave, the application establishes a WebSocket connection with the server. Using that connection, the app "registers" with the signaling server, essentially letting it know where it's located. The server responds by assigning a random, unique **Peer ID** to the user.
+
+<figure>
+  <center>
+    <img src="blogImgs/signaling.png" alt="signaling" />
+  </center>
+  <figcaption>
+    <small><strong>User gets assigned a Peer ID from signaling server.</strong></small>
+  </figcaption>
+</figure>
 
 The application uses that Peer ID to create and display a "Sharing Link" to the user. The user can share their specific link with anyone, and upon clicking that link, another user will automatically be connected to the user and able to collaborate on the document.
 
