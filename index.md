@@ -153,8 +153,6 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
-At this point our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations.
-
 ---
 ### Coding a CRDT
 
@@ -185,9 +183,9 @@ A CRDT must handle 4 basic operations:
 * Remote Insert
 * Remote Delete
 
-Local operations are operations that a user makes themself in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
+Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
 
-**Local Insert**
+##### Local Insert
 
 When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
 
@@ -215,7 +213,7 @@ generateChar(val, index) {
 }
 ```
 
-Since each character object's position is relative to the characters around if, we use the positions of the surrounding characters to generate a position for the new character.
+Since each character object's position is relative to the characters around it, the positions of the surrounding characters are used to generate a position for the new character.
 
 As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
 
@@ -239,19 +237,45 @@ generatePosBetween(pos1, pos2, newPos=[]) {
 }
 ```
 
+##### Local Delete
 
-<!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
+Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
-<figure>
-  <center>
-    <img src="blogImgs/id_algo.png" alt="id tree" />
-  </center>
-  <figcaption>
-    <small><strong>Simplified recursive algorithm to generate relative positions</strong></small>
-  </figcaption>
-</figure> -->
+```javascript
+localDelete(idx) {
+  return this.struct.splice(idx, 1)[0];
+}
+```
 
- Building that was pretty challenging by itself. But we wondered how we could make our application even better.
+##### Remote Operations
+
+Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
+
+To make this as efficient as possible, a binary search algorithm was implemented. The algorithm uses the character's relative position to find it's index in the array. Or, in the case of remote inserts, the binary search is used to find where it should be inserted.
+
+If it is a remote insertion, the character value and index are returned in order to insert the letter into the editor. For remote deletions, only the index is returned.
+
+```javascript
+remoteInsert(char) {
+  const index = this.findInsertIndex(char);
+  this.struct.splice(index, 0, char);
+
+  return { char: char.value, index: index };
+}
+
+remoteDelete(char) {
+  const index = this.findIndexByPosition(char);
+  this.struct.splice(index, 1);
+
+  return index;
+}
+```
+
+With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTS.
+
+Eventual consistency was achieved. **HUZZAH!**
+
+However, that wasn't the end of it. While building a CRDT and a simple central server relay were already rather challenging, we wondered how we could make our application even better.
 
 ---
 ### What are the limitations of using a central server?
@@ -357,7 +381,7 @@ According to [WebRTC Security](http://webrtc-security.github.io/):
 
 > Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
 
-You can rest assured that all the data transferred on Conclave is secure and protected from malicious man-in-the-middle attacks.
+We can safely say that all of the data that is transferred through Conclave is secure and protected from malicious man-in-the-middle attacks.
 
 ---
 ### Version Vector
@@ -446,6 +470,7 @@ At this point, we've described the major components of our system architecture. 
   </figcaption>
 </figure>
 
+---
 ### Optimizations
 
 The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
