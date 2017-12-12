@@ -480,11 +480,13 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 * Peer-To-Peer Connection management
 
 ---
-#### Editor Features
+### Editor Features
 
-##### Remote Cursors
+Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated. 
 
-Having several people edit a document at the same time can be a chaotic experience. It becomes even more chaotic when you don't know who else is typing and where.
+#### Remote Cursors
+
+Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
 That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
 
@@ -524,19 +526,19 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
   }
 ```
 
-##### Video Chat
+#### Video Chat
 
-##### Upload and Download
-
----
-#### CRDT Structure
+#### Upload and Download
 
 ---
-#### Peer-To-Peer Connection Management
+### CRDT Structure
 
-##### Network List and Peer Discovery
+---
+### Peer-To-Peer Connection Management
 
-##### Load Balancing
+#### Network List and Peer Discovery
+
+#### Load Balancing
 
 ---
 ### Future Plans
