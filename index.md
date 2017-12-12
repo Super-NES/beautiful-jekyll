@@ -129,6 +129,8 @@ In the "CAT" example, when user inserts "H" at position 1, they are actually try
 
 CRDTs accomplish this by employing fractional indices. Instead of inserting the “H” at position 1, it’s inserted at position 0.5. No matter what happens to the surrounding characters, “H” will be created in a place that matches the user’s intention.
 
+To represent fractional indices in code, we used a list of integers, otherwise known as position identifiers. We can use this use this list of position identifiers to locate the correct position that a character should be inserted into the document.
+
 <figure>
   <center>
     <img src="blogImgs/six.png" alt="fractional indices" />
@@ -151,7 +153,94 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
-Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
+At this point our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations.
+
+---
+### Coding a CRDT
+
+Talking about CRDTs in theory is well enough, how does someone go about coding it? It's actually much simpler than you might think.
+
+A CRDT needs certain properties to be functional:
+* A globally unique SiteID
+* A data structure to house all the character objects.
+
+Since each user will have their own copy of the CRDT on their machine, each CRDT needs to be identifiable using a unique SiteID. This makes it so all insert and delete operations can be tied back to a specific user.
+
+Additionally, each CRDT needs to have a data structure that houses all the character objects. This can be as simple as an array or linked list or as complicated as a matrix or tree. We decided to use a simple linear array to make things easy for ourselves.
+
+```javascript
+  class CRDT {
+    constructor(id) {
+      this.siteId = id;
+      this.struct = [];
+    }
+  }
+```
+
+#### CRDT Operations
+
+A CRDT must handle 4 basic operations:
+* Local Insert
+* Local Delete
+* Remote Insert
+* Remote Delete
+
+Local operations are operations that a user makes themself in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
+
+**Local Insert**
+
+When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
+
+```javascript
+  class CRDT {
+    // ...
+    localInsert(value, index) {
+      const char = this.generateChar(value, index);
+      this.struct.splice(index, 0, char);
+
+      return char;
+    }
+    // ...
+  }
+```
+
+You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the relative position of the character object.
+
+```javascript
+generateChar(val, index) {
+  const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
+  const posAfter = (this.struct[index] && this.struct[index].position) || [];
+  const newPos = this.generatePosBetween(posBefore, posAfter);
+  // ...
+}
+```
+
+Since each character object's position is relative to the characters around if, we use the positions of the surrounding characters to generate a position for the new character.
+
+As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
+
+```javascript
+generatePosBetween(pos1, pos2, newPos=[]) {
+  let id1 = pos1[0];
+  let id2 = pos2[0];
+
+  if (id2.digit - id1.digit > 1) {
+
+    let newDigit = this.generateIdBetween(id1.digit, id2.digit);
+    newPos.push(new Identifier(newDigit, this.siteId));
+    return newPos;
+
+  } else if (id2.digit - id1.digit === 1) {
+
+    newPos.push(id1);
+    return this.generatePosBetween(pos1.slice(1), pos2, newPos);
+
+  }
+}
+```
+
+
+<!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
 
 <figure>
   <center>
@@ -160,9 +249,9 @@ Furthermore, since positions can be thought of as a tree structure, a recursive 
   <figcaption>
     <small><strong>Simplified recursive algorithm to generate relative positions</strong></small>
   </figcaption>
-</figure>
+</figure> -->
 
-At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to ensure commutative and idempotent operations.
+ Building that was pretty challenging by itself. But we wondered how we could make our application even better.
 
 ---
 ### What are the limitations of using a central server?
@@ -331,14 +420,20 @@ After some more time, the insert operation finally arrives at Peer3, and its ver
 
 The logic described above is contained in the code snippet below. In addition, we've added a guard clause that prevents us from applying duplicate operations. In our peer-to-peer network, since peers are tasked with relaying operations, it's possible that a peer will receive operations that it's already applied. For every operation, the version vector is used to check if an operation has already been applied, and if so, just skip it with an early return.
 
-<figure>
-  <center>
-    <img src="blogImgs/handleRemoteOperation.png" alt="handleRemoteOperation code snippet" />
-  </center>
-  <figcaption>
-    <small><strong>The handleRemoteOperation method guards against the application of duplication operation, then applies inserts but places deletes into a buffer.</strong></small>
-  </figcaption>
-</figure>
+```javascript
+  handleRemoteOperation(operation) {
+    if (this.vector.hasBeenApplied(operation.version)) return;
+
+    if (operation.type === 'insert') {
+      this.applyOperation(operation);
+    } else if (operation.type === 'delete') {
+      this.buffer.push(operation);
+    }
+
+    this.processDeletionBuffer();
+    this.broadcast.send(operation);
+  }
+```
 
 At this point, we've described the major components of our system architecture. Within every instance of our application, a custom-built CRDT works together with a Version Vector to make sure our document replicas all converge. The Messenger is responsible for sending and receiving WebRTC messages. And of course, the Editor allows a user to interact with their local copy of the shared document.
 
@@ -350,8 +445,6 @@ At this point, we've described the major components of our system architecture. 
     <small><strong>Final System Architecture</strong></small>
   </figcaption>
 </figure>
-
-At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing the application to see if what new limitations we could address.
 
 ### Optimizations
 
