@@ -25,6 +25,9 @@ A character can be inserted or deleted from the text simply by referencing a pos
   </figcaption>
 </figure>
 
+We first thought of using an HTML textarea as our text editor but soon realized that a simple textarea is not able to detect the index at which a letter is inserted or deleted. A specialized editor was needed.
+
+We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
 
 ---
 ### What is a collaborative text editor?
@@ -532,6 +535,10 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
 
 ---
 ### CRDT Structure
+
+As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+
+Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT.
 
 ---
 ### Peer-To-Peer Connection Management
