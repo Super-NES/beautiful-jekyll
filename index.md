@@ -151,7 +151,39 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
-Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
+At this point our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations.
+
+---
+### Coding a CRDT
+
+Talking about CRDTs in theory is well enough, how does someone go about coding it? It's actually much simpler than you might think.
+
+A CRDT needs certain properties to be functional:
+* A globally unique SiteID
+* A data structure to house all the character objects.
+
+Since each user will have their own copy of the CRDT on their machine, each CRDT needs to be identifiable using a unique SiteID. This makes it so all insert and delete operations can be tied back to a specific user.
+
+Additionally, each CRDT needs to have a data structure that houses all the character objects. This can be as simple as an array or linked list or as complicated as a matrix or tree. We decided to use a simple linear array to make things easy for ourselves.
+
+<figure>
+  <center>
+    <img src="blogImgs/crdt.png" alt="crdt" />
+  </center>
+  <figcaption>
+    <small><strong>Basic CRDT constructor</strong></small>
+  </figcaption>
+</figure>
+
+#### CRDT Operations
+
+A CRDT must handle 4 basic operations:
+* Local Insert
+* Local Delete
+* Remote Insert
+* Remote Delete
+
+<!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
 
 <figure>
   <center>
@@ -160,9 +192,9 @@ Furthermore, since positions can be thought of as a tree structure, a recursive 
   <figcaption>
     <small><strong>Simplified recursive algorithm to generate relative positions</strong></small>
   </figcaption>
-</figure>
+</figure> -->
 
-At this point, we have a real-time, collaborative text editor. Our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations. Building that was pretty challenging by itself. But we wondered how we could make our application even better.
+ Building that was pretty challenging by itself. But we wondered how we could make our application even better.
 
 ---
 ### What are the limitations of using a central server?
@@ -278,7 +310,7 @@ You can rest assured that all the data transferred on Conclave is secure and pro
 ---
 ### Version Vector
 
-However, one drawback to UDP is that it does not guarantee in-order packet delivery. Therefore, our messages may be received in a different order than they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
+However, one drawback to UDP is that it does not guarantee in-order packet delivery. Therefore, our messages may be received in a different order than when they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
 
 <figure>
   <center>
@@ -297,7 +329,7 @@ In our specific use case, there's no reason we can't apply insert operations imm
 
 At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing our app to see if we could discover any additional limitations that we could address.
 
-### Performance Testing
+### Optimizations
 
 ### NITINS NOTES FOR OPTIMIZATION SECTION
 
