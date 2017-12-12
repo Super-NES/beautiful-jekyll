@@ -473,9 +473,81 @@ At this point, we've described the major components of our system architecture. 
 ---
 ### Optimizations
 
+As our team continued to use Conclave, we noticed many aspects of the user experience that needed to be improved. These areas of improvement can be broken down into three categories:
+
+* Editor Features
+* CRDT Structure
+* Peer-To-Peer Connection management
+
+---
+#### Editor Features
+
+##### Remote Cursors
+
+Having several people edit a document at the same time can be a chaotic experience. It becomes even more chaotic when you don't know who else is typing and where.
+
+That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
+
+{: .center}
+![remote_cursors](/img/conclave_cursors.gif){:width="450" height="200"}
+
+Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
+
+However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent all nodes while preventing different users from ending up with the same color?
+
+Ensuring that users have unique cursors was as simple as adding an animal name to the cursor and having a large number of possible color/animal combinations.
+
+{: .center}
+![combinations](/blogImgs/combinations.png)
+
+To address the consistency issue, we ended up creating a simple modulo hashing algorithm that would reduce each user's ID into an index that mapped to a animal and color pairing.
+
+```javascript
+  addRemoteCursor() {
+    // ...
+
+    const color = generateItemFromHash(this.siteId, CSS_COLORS);
+    const name = generateItemFromHash(this.siteId, ANIMALS);
+
+    // ...
+  }
+
+  function generateItemFromHash(siteId, collection) {
+    const hashIdx = hashAlgo(siteId, collection);
+
+    return collection[hashIdx];
+  }
+
+  function hashAlgo(input, collection) {
+    const filteredNum = input.toLowerCase().replace(/[a-z\-]/g, '');
+    return Math.floor(filteredNum * 13) % collection.length;
+  }
+```
+
+##### Video Chat
+
+##### Upload and Download
+
+---
+#### CRDT Structure
+
+---
+#### Peer-To-Peer Connection Management
+
+##### Network List and Peer Discovery
+
+##### Load Balancing
+
+---
+### Future Plans
 
 
-The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
+
+---
+### Conclusion
+
+
+<!-- The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
 
 When the 2nd person launched an instance of the app, even though they are using the same shared document, they are actually given a unique sharing link with their own unique id pointing to them. When a 3rd person uses the 2nd person’s sharing link, all operations are routed through the 2nd person. Therefore when the 3rd person makes a change, it gets sent to the 2nd person, who then relays that change to the person they were connected to.
 
@@ -521,4 +593,4 @@ To find a new target, it finds a list of peers in the network that we’re not a
 
 QUESTION: What if we sent the received operation to our connections before we applied it to our CRDT? It feels like we're adding network latency by waiting for our local CRDT/editor behavior to complete before relaying operations to other peers.
 
-ANSWER: Because we have to wait for the VV to be updated. If we broadcast before inserting/deleting, then one of our peers could process it and send it back to us before we finished processing and updating the VV. It is unlikely to happen, like it only happens if our computer is extremely slow compared to theirs. But it guarantees that we don’t accidentally apply a duplicate.
+ANSWER: Because we have to wait for the VV to be updated. If we broadcast before inserting/deleting, then one of our peers could process it and send it back to us before we finished processing and updating the VV. It is unlikely to happen, like it only happens if our computer is extremely slow compared to theirs. But it guarantees that we don’t accidentally apply a duplicate. -->
