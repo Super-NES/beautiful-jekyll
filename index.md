@@ -205,12 +205,12 @@ When inserting a character locally, the only information needed is the character
 You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the relative position of the character object.
 
 ```javascript
-generateChar(val, index) {
-  const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
-  const posAfter = (this.struct[index] && this.struct[index].position) || [];
-  const newPos = this.generatePosBetween(posBefore, posAfter);
-  // ...
-}
+  generateChar(val, index) {
+    const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
+    const posAfter = (this.struct[index] && this.struct[index].position) || [];
+    const newPos = this.generatePosBetween(posBefore, posAfter);
+    // ...
+  }
 ```
 
 Since each character object's position is relative to the characters around it, the positions of the surrounding characters are used to generate a position for the new character.
@@ -218,23 +218,23 @@ Since each character object's position is relative to the characters around it, 
 As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
 
 ```javascript
-generatePosBetween(pos1, pos2, newPos=[]) {
-  let id1 = pos1[0];
-  let id2 = pos2[0];
+  generatePosBetween(pos1, pos2, newPos=[]) {
+    let id1 = pos1[0];
+    let id2 = pos2[0];
 
-  if (id2.digit - id1.digit > 1) {
+    if (id2.digit - id1.digit > 1) {
 
-    let newDigit = this.generateIdBetween(id1.digit, id2.digit);
-    newPos.push(new Identifier(newDigit, this.siteId));
-    return newPos;
+      let newDigit = this.generateIdBetween(id1.digit, id2.digit);
+      newPos.push(new Identifier(newDigit, this.siteId));
+      return newPos;
 
-  } else if (id2.digit - id1.digit === 1) {
+    } else if (id2.digit - id1.digit === 1) {
 
-    newPos.push(id1);
-    return this.generatePosBetween(pos1.slice(1), pos2, newPos);
+      newPos.push(id1);
+      return this.generatePosBetween(pos1.slice(1), pos2, newPos);
 
+    }
   }
-}
 ```
 
 ##### Local Delete
@@ -242,9 +242,9 @@ generatePosBetween(pos1, pos2, newPos=[]) {
 Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
 ```javascript
-localDelete(idx) {
-  return this.struct.splice(idx, 1)[0];
-}
+  localDelete(idx) {
+    return this.struct.splice(idx, 1)[0];
+  }
 ```
 
 ##### Remote Operations
@@ -256,19 +256,19 @@ To make this as efficient as possible, a binary search algorithm was implemented
 If it is a remote insertion, the character value and index are returned in order to insert the letter into the editor. For remote deletions, only the index is returned.
 
 ```javascript
-remoteInsert(char) {
-  const index = this.findInsertIndex(char);
-  this.struct.splice(index, 0, char);
+  remoteInsert(char) {
+    const index = this.findInsertIndex(char);
+    this.struct.splice(index, 0, char);
 
-  return { char: char.value, index: index };
-}
+    return { char: char.value, index: index };
+  }
 
-remoteDelete(char) {
-  const index = this.findIndexByPosition(char);
-  this.struct.splice(index, 1);
+  remoteDelete(char) {
+    const index = this.findIndexByPosition(char);
+    this.struct.splice(index, 1);
 
-  return index;
-}
+    return index;
+  }
 ```
 
 With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTS.
@@ -472,6 +472,8 @@ At this point, we've described the major components of our system architecture. 
 
 ---
 ### Optimizations
+
+
 
 The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
 
