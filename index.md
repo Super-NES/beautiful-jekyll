@@ -5,7 +5,7 @@ subtitle: Collaborate in private
 use-site-title: true
 ---
 
-[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay]().
+[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://www.linkedin.com/in/elise-olivares-123370141/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
 
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
 
