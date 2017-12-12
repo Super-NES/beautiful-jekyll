@@ -129,6 +129,8 @@ In the "CAT" example, when user inserts "H" at position 1, they are actually try
 
 CRDTs accomplish this by employing fractional indices. Instead of inserting the “H” at position 1, it’s inserted at position 0.5. No matter what happens to the surrounding characters, “H” will be created in a place that matches the user’s intention.
 
+To represent fractional indices in code, we used a list of integers, otherwise known as position identifiers. We can use this use this list of position identifiers to locate the correct position that a character should be inserted into the document.
+
 <figure>
   <center>
     <img src="blogImgs/six.png" alt="fractional indices" />
@@ -201,6 +203,42 @@ When inserting a character locally, the only information needed is the character
     // ...
   }
 ```
+
+You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the relative position of the character object.
+
+```javascript
+generateChar(val, index) {
+  const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
+  const posAfter = (this.struct[index] && this.struct[index].position) || [];
+  const newPos = this.generatePosBetween(posBefore, posAfter);
+  // ...
+}
+```
+
+Since each character object's position is relative to the characters around if, we use the positions of the surrounding characters to generate a position for the new character.
+
+As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
+
+```javascript
+generatePosBetween(pos1, pos2, newPos=[]) {
+  let id1 = pos1[0];
+  let id2 = pos2[0];
+
+  if (id2.digit - id1.digit > 1) {
+
+    let newDigit = this.generateIdBetween(id1.digit, id2.digit);
+    newPos.push(new Identifier(newDigit, this.siteId));
+    return newPos;
+
+  } else if (id2.digit - id1.digit === 1) {
+
+    newPos.push(id1);
+    return this.generatePosBetween(pos1.slice(1), pos2, newPos);
+
+  }
+}
+```
+
 
 <!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
 
