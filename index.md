@@ -5,7 +5,7 @@ subtitle: Collaborate in private
 use-site-title: true
 ---
 
-[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](), [Nitin Savant](), and [Sunny Beatteay]().
+[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay]().
 
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
 
@@ -97,7 +97,7 @@ Operational Transformation was the first popular way to allow for collaborative 
 ---
 ### CRDTs
 
-An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) were discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
+An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) was discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
 
 The major difference with CRDTs is with how they create and store their characters. With one user typing in a text editor, each character requires only a value and a whole number positional index. In collaborative editing, we've seen that this simple requirement creates a couple problems with convergence and intention preservation.
 
@@ -199,7 +199,7 @@ A CRDT must handle 4 basic operations:
 ---
 ### What are the limitations of using a central server?
 
-The current system architecture relies on the client-server model of communication. At the center of our many users lies a central server that acts as a relay to deliver operations to every user in the network.
+The current system architecture relies on the client-server model of communication. It supports multiple users editing a shared document, and between all of our users lies a central server that acts as a relay by forwarding operations to every user in the network of that shared document.
 
 <figure>
   <center>
@@ -210,7 +210,11 @@ The current system architecture relies on the client-server model of communicati
   </figcaption>
 </figure>
 
-We identified four main limitations with this design. The first is that all operations must be routed through the central server, even if users are sitting right next to each other. At best, this doubles the network latency of an operation. At worst, if two users are sitting next to each other in L.A. while the server is located in New York, the time to send a message between users skyrockets from ~10ms to 200-300 ms.
+We started with this model because it allowed us to first focus on resolving editing conflicts among users. Building that was pretty challenging by itself but we wondered how we could make our application even better. Could we change our application architecture to a better model? Before we get into what we changed, let's talk about the limitations of our current central server architecture.
+
+The first limitation is that we currently have an unnecessarily high latency between users. All operations are currently routed through the server, so even if users are sitting right next to each other, they still must communicate with each other through the server.
+
+For example, let's say we have two users sitting next to each other in Los Angeles while our server is located in New York. Even though the users could be just milliseconds apart, the time it takes to send a message between them is actually 200-300 ms. This latency directly impacts how "real-time" our application feels, and we want to reduce this as much as possible.
 
 <figure>
   <center>
@@ -221,16 +225,16 @@ We identified four main limitations with this design. The first is that all oper
   </figcaption>
 </figure>
 
-The second limitation is that a central server is costly to scale. As the number of users increases, the amount of operations that must be relayed increases accordingly. To support this increase in work, the server would require additional resources which costs money. As a team creating an open source project, we wanted to minimize the financial cost as much as possible.
+The second limitation is that a central server can be costly to scale. As the number of users increases, the amount of work the server must do increases accordingly. To support this, the server would require additional resources, which costs money. As a team creating an open source project, we wanted to minimize the financial cost as much as possible.
 
-The third limitation is that this design requires that our users trust the central server and anyone that has access to it. That could include the application developers (us in this case), the hosting service, and even the government.
+The third limitation is that the client-server model requires that users trust the server and anyone that has access to it with their data. That includes the application developers (us in this case), our hosting service, and potentially the government.
 
-And finally, a central server introduces a single point-of-failure. If the server were to go down, all users immediately lose their ability to collaborate with each other.
+And finally, reliance on a central server creates a single point-of-failure. If the server were to go down, all users will immediately lose their ability to collaborate with each other.
 
 ---
 ### Peer-to-Peer Architecture
 
-We can remove these limitations by switching to a peer-to-peer architecture where users broadcast operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or node) can act as both a client and a server. Instead of relying on a central server to send and receive operations, we can have our users perform that work for free (at least in terms of $).
+We can remove these limitations by switching to a peer-to-peer architecture where users send operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or peer) can act as both a client and a server. This means that instead of relying on a server to relay operations, we can have our users perform that work for free (at least in terms of money). In other words, our users will be responsible for relaying operations to other users they're connected to.
 
 <figure>
   <center>
@@ -241,19 +245,16 @@ We can remove these limitations by switching to a peer-to-peer architecture wher
   </figcaption>
 </figure>
 
-For our collaborative text editor, this means that instead of simply broadcasting local operations and applying remote operations, our nodes will also fill the original role of the server by relaying operations to any other nodes they're connected to.
-
 ---
 ### How will users send messages directly to each other?
 
-To allow nodes to send and receive messages to and from each other, we decided to use the **WebRTC** protocol.
+To allow nodes to send and receive messages, we used a technology called **WebRTC**. WebRTC is a protocol that was designed for real-time communication over peer-to-peer connections. It's primarily intended to support plugin-free audio or video calling but its simplicity makes it perfect for us even though we're really just sending text messages.
 
-WebRTC was designed for plugin-free real-time communication over peer-to-peer connections.
+While WebRTC enables our users to talk directly to one another, a small server is required to initiate those peer-to-peer connections in a process called "signaling".
 
+It's important to mention that while WebRTC relies on this  signaling server, no document content will ever travel through it. It’s simply used to initiate the connection. Once a connection is established, the server is actually no longer necessary.
 
-It's primarily intended to support audio or video calling but its simplicity makes it well-suited for our use case.
-
-While WebRTC enables our users to communicate directly, a small central server is required to initiate the connection between users in a process called "signaling". When a user first opens Conclave, the application establishes a WebSocket connection with the server. Using that connection, the app "registers" with the signaling server, essentially letting it know where it's located. The server responds by assigning a random, unique **Peer ID** to the user.
+When a user first opens Conclave, the application establishes a WebSocket connection with the server. Using that connection, the app "registers" with the signaling server, essentially letting it know where it's located. The server responds by assigning a random, unique **Peer ID** to the user. The application then uses the assigned Peer ID to create a **Sharing Link** to display to each user.
 
 <figure>
   <center>
@@ -264,9 +265,9 @@ While WebRTC enables our users to communicate directly, a small central server i
   </figcaption>
 </figure>
 
-The application uses that Peer ID to create and display a "Sharing Link" to the user. The user can share their specific link with anyone, and upon clicking that link, another user will automatically be connected to the user and able to collaborate on the document.
+The link is unique to each user and is essentially a pointer to a particular user. A user can share their link with anyone, and upon clicking the link, the collaborator will automatically be connected to the user and able to collaborate on the shared document.
 
-To implement the signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com). It takes care of a lot of this stuff behind the scenes for us. For example, when a user attempts to connect to another user, the signaling server brokers the connection by providing the target user's location (or IP address) to the connecting user.
+To implement signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com) which took care of a lot of this stuff behind the scenes for us. For example, when a user clicks another user's sharing link, it's essentially asking the signaling server to broker a connection between them. The server responds by providing the user with the other user's IP address, allowing the user to send messages to the other user.
 
 Since most internet users use wireless routers, the public IP address is found using a STUN server. The connecting user then uses the IP address to establish a WebRTC connection, and once established, content can be sent directly between users. In the case that a connection with the STUN server cannot be made and the WebRTC connection fails, a TURN server is used as a backup to send operations between users.
 
@@ -279,12 +280,10 @@ Since most internet users use wireless routers, the public IP address is found u
   </figcaption>
 </figure>
 
-It's critical to understand that while WebRTC relies on a central signaling server, no document content travels through the server. It’s simply used to initiate a connection between users. Once a connection is established, the server is no longer necessary to the connected users.
-
 ---
 ### Is WebRTC Secure?
 
-One question we are often asked is *Is WebRTC secure and encrypted?* The answer to which is a resounding **YES**.
+One question we are often asked is *Is WebRTC secure and encrypted?* The answer is a resounding **YES**.
 
 <figure>
   <center>
@@ -299,10 +298,6 @@ WebRTC uses the **UDP** transport protocol. UDP is a lightweight message protoco
 
 According to [WebRTC Security](http://webrtc-security.github.io/):
 
-> [STUN and TURN] are necessary to establish and maintain a peer-to-peer connection over UDP. DTLS is used to secure all data transfers between peers, as encryption is a mandatory feature of WebRTC. Finally, SCTP and SRTP are the application protocols used to multiplex the different streams, provide congestion and flow control, and provide partially reliable delivery and other additional services on top of UDP.
-
-> ...
-
 > Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
 
 You can rest assured that all the data transferred on Conclave is secure and protected from malicious man-in-the-middle attacks.
@@ -310,28 +305,85 @@ You can rest assured that all the data transferred on Conclave is secure and pro
 ---
 ### Version Vector
 
-However, one drawback to UDP is that it does not guarantee in-order packet delivery. Therefore, our messages may be received in a different order than when they were sent. This presents a problem. What if a user receives a delete message before it receives the message to actually insert that character?
+One drawback to UDP is that it does not guarantee in-order packet delivery. That means that our messages may be received in a different order than they were sent. This presents a potential issue. What if a user receives a message to delete a particular character before it's actually inserted that  character?
+
+Let's say we have 3 peers collaborating on a document. Two of the peers are next to each other while the third is far away. Peer1 types an "A" and sends the operation out to both peers. Since Peer2 is nearby, it quickly receives the operation but decides it doesn't like it and promptly deletes it.
 
 <figure>
   <center>
-    <img src="blogImgs/eleven.png" alt="version vector" />
+    <img src="blogImgs/insert-delete-VV-1.png" alt="version vector" />
   </center>
   <figcaption>
-    <small><strong>What if a delete operation arrives before its corresponding insert?</strong></small>
+    <small><strong>Peer1 inserts a character and Peer2 immediately deletes it.</strong></small>
   </figcaption>
 </figure>
 
-To solve the out-of-order messages problem, we implemented what's called a **Version Vector**. It's a fancy name for a simple strategy that tracks which operations we've received from each user.
+Now both the insert and delete operations are on their way to Peer 3. But due to the unpredictability of the Internet, the delete operation races past the insert operation.
 
-When a user broadcasts an operation, they also send along their **Site ID** and **Operation Counter** value. The Site ID indicates who originally sent the operation, and the Operation Counter indicates what number operation it is. The receiver can then look in its version vector to see if this operation is ready to be applied, or if it needs to wait to receive other operations first.
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-2.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>The delete operation arrives at Peer3 before the insert operation.</strong></small>
+  </figcaption>
+</figure>
 
-In our specific use case, there's no reason we can't apply insert operations immediately after receiving them. But we cannot apply a delete operation until we receive and apply it's corresponding insert operation first. So in the meantime, we place the delete operation in a **Deletion Buffer** until it's ready to be applied.
+What happens if the delete operation arrives at Peer3 before the insert operation? We wouldn't want to apply the delete first because there'd be nothing to delete and the operation would be lost. Later, when the insert is applied, Peer3's document would look different from the others. We need to find a way to wait to apply the delete operation only after we've applied the insert.
 
-At this point, we now have a real-time, peer-to-peer, collaborative text editor. Our editor doesn't rely on a central server to deliver messages and is even resilient to out-of-order delivery of messages. Moving forward, we wondered how else we could improve our existing design. To answer this question, we began testing our app to see if we could discover any additional limitations that we could address.
+To solve the out-of-order messages problem, we built what's called a **Version Vector**. It sounds fancy but it's simply a strategy that tracks which operations we've received from each user.
+
+Whenever an operation is sent out, in addition to the character object and whether it's an insertion or deletion, we also include the character's **Site ID** and **Operation Counter** value. The SiteID indicates who originally sent the operation, and the Counter indicates which operation number it is from that particular user.
+
+When a peer receives a delete operation, it's immediately placed in a **Deletion Buffer**. If it were an insert, we could just apply it immediately. But with deletes, we have to make sure the character has been inserted first.
+
+After every operation (insert or delete), the deletion buffer is "processed" to check if the characters have been inserted yet. In this example, the character has a SiteID of 1 and Counter of 24.
+
+To perform this check, Peer3 consults its version vector. Since Peer3 has only seen 23 operations from Peer1, the delete operation will remain in the buffer.
+
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-3.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>The first time the buffer is processed, the delete operation isn't ready to be applied by Peer3. </strong></small>
+  </figcaption>
+</figure>
+
+After some more time, the insert operation finally arrives at Peer3, and its version vector is updated to reflect that it's seen 24 operations from Peer1. Since we've received a new operation, we again process the deletion buffer. This time, when the deletion operation's character is compared to the version vector, the delete operation can be removed from the buffer and applied.
+
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-VV-4.png" alt="version vector" />
+  </center>
+  <figcaption>
+    <small><strong>This time the delete operation can be applied by Peer3.</strong></small>
+  </figcaption>
+</figure>
+
+The logic described above is contained in the code snippet below. In addition, we've added a guard clause that prevents us from applying duplicate operations. In our peer-to-peer network, since peers are tasked with relaying operations, it's possible that a peer will receive operations that it's already applied. For every operation, the version vector is used to check if an operation has already been applied, and if so, just skip it with an early return.
+
+<figure>
+  <center>
+    <img src="blogImgs/handleRemoteOperation.png" alt="handleRemoteOperation code snippet" />
+  </center>
+  <figcaption>
+    <small><strong>The handleRemoteOperation method guards against the application of duplication operation, then applies inserts but places deletes into a buffer.</strong></small>
+  </figcaption>
+</figure>
+
+At this point, we've described the major components of our system architecture. Within every instance of our application, a custom-built CRDT works together with a Version Vector to make sure our document replicas all converge. The Messenger is responsible for sending and receiving WebRTC messages. And of course, the Editor allows a user to interact with their local copy of the shared document.
+
+<figure>
+  <center>
+    <img src="blogImgs/system-architecture.png" alt="System Architecture" />
+  </center>
+  <figcaption>
+    <small><strong>Final System Architecture</strong></small>
+  </figcaption>
+</figure>
 
 ### Optimizations
-
-### NITINS NOTES FOR OPTIMIZATION SECTION
 
 The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
 
