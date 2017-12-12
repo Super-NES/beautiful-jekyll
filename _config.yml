@@ -8,7 +8,7 @@
 #baseurl: "/projectname"
 
 # If you are building a GitHub project page then use these settings:
-url: "http://super-nes.github.io/conclave-site"
+url: "http://conclave-team.github.io/conclave-site"
 baseurl: "/conclave-site"
 
 # Of course don't forget to change the username and projectname to YOUR username and project
@@ -26,7 +26,7 @@ navbar-links:
   Home: ""
   Team: "team"
   Demo: "https://conclave-app.herokuapp.com/"
-  GitHub Project: "https://github.com/Super-NES/conclave"
+  GitHub Project: "https://github.com/conclave-team/conclave"
 
 # Image to show in the navigation bar - image must be a square (width = height)
 # Remove this parameter if you don't want an image in the navbar
@@ -53,8 +53,8 @@ avatar: "/img/avatar-icon.png"
 # Change all these values or delete the ones you don't want.
 # Important: you must keep the "name" parameter, everything else you can remove
 author:
-  name: Super-NES
-  github: Super-NES/conclave-editor
+  name: conclave-team
+  github: conclave-team/conclave
 
 
 # Select which links to show in the footer
