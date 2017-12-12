@@ -166,14 +166,14 @@ Since each user will have their own copy of the CRDT on their machine, each CRDT
 
 Additionally, each CRDT needs to have a data structure that houses all the character objects. This can be as simple as an array or linked list or as complicated as a matrix or tree. We decided to use a simple linear array to make things easy for ourselves.
 
-<figure>
-  <center>
-    <img src="blogImgs/crdt.png" alt="crdt" />
-  </center>
-  <figcaption>
-    <small><strong>Basic CRDT constructor</strong></small>
-  </figcaption>
-</figure>
+```javascript
+  class CRDT {
+    constructor(id) {
+      this.siteId = id;
+      this.struct = [];
+    }
+  }
+```
 
 #### CRDT Operations
 
@@ -182,6 +182,25 @@ A CRDT must handle 4 basic operations:
 * Local Delete
 * Remote Insert
 * Remote Delete
+
+Local operations are operations that a user makes themself in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
+
+**Local Insert**
+
+When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
+
+```javascript
+  class CRDT {
+    // ...
+    localInsert(value, index) {
+      const char = this.generateChar(value, index);
+      this.struct.splice(index, 0, char);
+
+      return char;
+    }
+    // ...
+  }
+```
 
 <!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
 
@@ -363,14 +382,20 @@ After some more time, the insert operation finally arrives at Peer3, and its ver
 
 The logic described above is contained in the code snippet below. In addition, we've added a guard clause that prevents us from applying duplicate operations. In our peer-to-peer network, since peers are tasked with relaying operations, it's possible that a peer will receive operations that it's already applied. For every operation, the version vector is used to check if an operation has already been applied, and if so, just skip it with an early return.
 
-<figure>
-  <center>
-    <img src="blogImgs/handleRemoteOperation.png" alt="handleRemoteOperation code snippet" />
-  </center>
-  <figcaption>
-    <small><strong>The handleRemoteOperation method guards against the application of duplication operation, then applies inserts but places deletes into a buffer.</strong></small>
-  </figcaption>
-</figure>
+```javascript
+  handleRemoteOperation(operation) {
+    if (this.vector.hasBeenApplied(operation.version)) return;
+
+    if (operation.type === 'insert') {
+      this.applyOperation(operation);
+    } else if (operation.type === 'delete') {
+      this.buffer.push(operation);
+    }
+
+    this.processDeletionBuffer();
+    this.broadcast.send(operation);
+  }
+```
 
 At this point, we've described the major components of our system architecture. Within every instance of our application, a custom-built CRDT works together with a Version Vector to make sure our document replicas all converge. The Messenger is responsible for sending and receiving WebRTC messages. And of course, the Editor allows a user to interact with their local copy of the shared document.
 
