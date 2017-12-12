@@ -482,7 +482,7 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 ---
 ### Editor Features
 
-Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated. 
+Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
 #### Remote Cursors
 
@@ -491,7 +491,7 @@ Having several people edit a document at the same time can be a chaotic experien
 That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
 
 {: .center}
-![remote_cursors](/img/conclave_cursors.gif){:width="450" height="200"}
+![remote_cursors](/bloImgs/remote_cursors.png)
 
 Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
 
