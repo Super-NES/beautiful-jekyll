@@ -85,7 +85,7 @@ As demonstrated in the two examples above, our solution must satisfy the two mat
 How can we solve this challenge?
 
 ---
-### Operational Transformation
+### Operational Transformation (OT)
 
 One possible solution we found is called Operational Transformation (OT). OT is an algorithm that compares concurrent operations and detects if they will cause the document state to diverge. It then modifies the operations so that they will merge together. We will represent OT as a "black box" for now.
 
@@ -109,7 +109,7 @@ Operational Transformation was the first popular way to allow for collaborative 
 > Joseph Gentle (Google Wave / ShareJS Engineer)
 
 ---
-### CRDTs
+### Conflict-Free Replicated Data Type (CRDT)
 
 An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) was discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
 
@@ -494,7 +494,7 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 3. Peer-To-Peer Connection management
 
 ---
-### 1. Editor Features
+### Editor Features
 
 Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
@@ -545,7 +545,7 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
 #### Upload and Download
 
 ---
-### 2. CRDT Structure
+### CRDT Structure
 
 As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
@@ -584,7 +584,7 @@ Where it took our original CRDT upwards of 14 seconds to complete about 100 thou
 We were pretty happy with that.
 
 ---
-### 3. Peer-To-Peer Connection Management
+### Peer-To-Peer Connection Management
 
 The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
