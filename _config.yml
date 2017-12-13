@@ -23,7 +23,7 @@ description: A private and secure real-time collaborative text editor
 
 # List of links in the navigation bar
 navbar-links:
-  Case Study: "conclave-site"
+  Case Study: ""
   Try Conclave!: "https://conclave-app.herokuapp.com/"
   Our Team: "team"
   Fork on GitHub: "https://github.com/conclave-team/conclave"
