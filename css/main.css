@@ -84,6 +84,11 @@ hr.small {
   text-align: center;
 }
 
+.center img {
+  display: block;
+  margin: 0 auto;
+}
+
 .sunny {
   transform: scaleX(-1);
   filter: FlipH;
