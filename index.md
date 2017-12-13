@@ -189,17 +189,17 @@ Additionally, each CRDT needs to have a data structure that houses all the chara
   }
 ```
 
-#### CRDT Operations
-
 A CRDT must handle 4 basic operations:
 * Local Insert
 * Local Delete
 * Remote Insert
 * Remote Delete
 
+#### Local Operations
+
 Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
 
-##### Local Insert
+**Local Insert**
 
 When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
 
@@ -251,7 +251,7 @@ As mentioned before, relative positions can be thought of as a tree structure. W
   }
 ```
 
-##### Local Delete
+**Local Delete**
 
 Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
@@ -261,7 +261,7 @@ Luckily, deleting a character from the CRDT is not as complicated as inserting o
   }
 ```
 
-##### Remote Operations
+#### Remote Operations
 
 Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
 
