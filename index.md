@@ -643,14 +643,14 @@ Whoever receives the request will evaluate it to see if they have reached the ma
 
 **What is the maximum number of connections?**
 
-To answer that question, we had to calculate what was the average number of connections we wanted every user to have. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues.
+To answer that question, we had to calculate what was the average number of connections we wanted every user to have. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues. We decided that a logarithmic scale (**O(log(N))**) was ideal.
 
-We decided that a logarithmic scale (**O(log(N))**) was ideal. In a network with 100 users, each user would ideally have around 5 connections, so that was the number we started with. If the network grows to be larger than that, then the max changes to being half the size of the network.
+However, through testing and trial-and-error, we discovered that a logarithmic scale can cause unusual bugs when the network is less than 5 users. Therefore, we use 5 connections as our baseline and when the network grows beyond the point, it switches back to logarithmic growth.
 
 ```javascript
   hasReachedMax() {
-    const halfTheNetwork = Math.ceil(this.controller.network.length / 2);
-    const tooManyConns = this.connections.length > Math.max(halfTheNetwork, 5);
+    const logNetwork = Math.ceil(Math.log(this.network.length));
+    const tooManyConns = this.connections.length > Math.max(logNetwork, 5);
 
     return tooManyConns;
   }
