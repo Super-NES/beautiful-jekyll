@@ -77,7 +77,11 @@ hr.small {
 }
 
 .spacing {
-  margin-top: 20px;
+  margin-top: 35px;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .sunny {
