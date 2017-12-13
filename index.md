@@ -9,6 +9,9 @@ Conclave is a real-time, peer-to-peer, collaborative text editor built by softwa
 
 [Click here](https://conclave-app.herokuapp.com/)  to start using Conclave right now!
 
+---
+## Case Study
+
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
 
 ---
