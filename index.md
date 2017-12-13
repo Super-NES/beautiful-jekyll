@@ -538,7 +538,39 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
 
 As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
-Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT.
+Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
+
+In order to use this object in our CRDT, it needs to be converted into a linear index. This involves retrieving the document, splitting it by new line characters, iterating over the lines and calculating the index. This process is reversed in the case of remote insertions/deletions.
+
+{: .center}
+![editor_position](/blogImgs/editor_position.png)
+
+That is a lot of overhead to find a simple index. This lead us to wonder what data structure would be more efficient for our CRDT. That’s when we realized the CodeMirror editor itself is structured as a two-dimensional array.
+
+{: .center}
+![two_dimen_array](/blogImgs/two_dimen_array.png)
+
+If we built our CRDT to match the layout of our editor, we could get rid of that overhead. It turns out it has a lot of other benefits as well.
+
+{: .center}
+![crdt_table](/blogImgs/crdt_table.png)
+
+Search went from **O(log N)** — N being all the characters in the document — to O(log L + log C) — L being the total number of lines and C being the number of characters in that line.
+
+We were able to do this by using two binary searches. One to find the correct line and the other to find the character in that line.
+
+In the case of inserting and deleting, the worst time complexity for linear arrays is **O(N)** due to shifting, but it’s only O(C) for two-dimensional arrays because only the characters in that line need to shifted.
+
+Finally, we were able to reduce the Find Index complexity from **O(N)** to **O(1)** because we can pass the position object that CodeMirror returns directly to the CRDT without any need of linearization or conversion.
+
+We even wrote test scripts and recorded how long it took each structure to complete the script. Here are the results:
+
+{: .center}
+![graph](/blogImgs/graph.png)
+
+Where it took our original CRDT upwards of 14 seconds to complete about 100 thousand operations, our improved two-dimensional structure can do it in less than a second.
+
+We were pretty happy with that.
 
 ---
 ### Peer-To-Peer Connection Management
