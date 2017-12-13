@@ -575,63 +575,118 @@ We were pretty happy with that.
 ---
 ### 3. Peer-To-Peer Connection Management
 
+The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
+
+---
+
+**Sidenote:** We define *"network"* as the web of peer-to-peer connections. In this context, the *"network"* is only made up of users --  there are no servers.
+
+---
+
+One problem we ran into was users getting stranded or cut off from the network. Say we have three users, like in the diagram below.
+
+{: .center}
+![network_3](/blogImgs/network_3.png)
+
+Peer 2 and Peer 3 are connected through Peer 1, who acts as the message relay.
+
+But what if Peer 1 leaves?
+
+{: .center}
+![network_cut](/blogImgs/network_cut.png)
+
+Now Peer 2 and Peer 3 are stranded and can no longer collaborate. The collaboration is essentially over.
+
+In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
+
 #### Network List and Peer Discovery
 
+The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
+
+{: .center}
+![network_list](/blogImgs/network_list.png)
+
+This allows each user to know of all the other users, even if they’re not directly connected to each other. Now, if a user they are connected to leaves, they can pick someone random from the list and connect to them, allowing for the editing session to continue.
+
+{: .center}
+![peer_found](/blogImgs/peer_found.png)
+
+Is it possible to avoid a single point of failure in the first place? After all, that was the purpose of creating a peer-to-peer network in the first place.
+
 #### Load Balancing
+
+Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
+
+{: .center}
+![conn_request](/blogImgs/conn_request.png)
+
+Whoever receives the request will evaluate it to see if they have reached the maximum number of connections. If they have, they will forward the request to someone else in the network. If they haven't, they will connect back.
+
+```javascript
+  evaluateRequest(peerId, siteId) {
+    if (this.hasReachedMax()) {
+      this.forwardConnRequest(peerId, siteId);
+    } else {
+      this.acceptConnRequest(peerId, siteId);
+    }
+  }
+```
+
+<figure>
+  <center>
+    <img src="blogImgs/request_forward.png" alt="Forwarded Request" />
+  </center>
+  <figcaption>
+    <small><strong>Forwarded Connection Request</strong></small>
+  </figcaption>
+</figure>
+
+**What is the maximum number of connections?**
+
+To answer that question, we had to calculate what was the average number of connections we wanted every user to have. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues.
+
+We decided that a logarithmic scale (**O(log(N))**) was ideal. In a network with 100 users, each user would ideally have around 5 connections, so that was the number we started with. If the network grows to be larger than that, then the max changes to being half the size of the network.
+
+```javascript
+  hasReachedMax() {
+    const halfTheNetwork = Math.ceil(this.controller.network.length / 2);
+    const tooManyConns = this.connections.length > Math.max(halfTheNetwork, 5);
+
+    return tooManyConns;
+  }
+```
+
+Load balancing is not an perfect solution. While it does remove a single point of failure, it doesn't not remove bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
 
 ---
 ### Future Plans
 
+This is an ongoing project and the Conclave Team has several plans in store.
 
+#### Better Connection Distribution
+
+The first being to further improve connection distribution for users in the network. A possible we are entertaining is have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drop and force them to find a new peer.
+
+#### Mass insertions and deletions
+
+Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of larges cuts and pastes.
+
+#### Automatic testing for P2P network
+
+Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
+
+#### Atom plug-in and embeddable browser editor.
+
+{: .center}
+![teletype](/blogImgs/teletype.png)
+
+Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own Atom plugin, or at least an embeddable collaborative editor for the browser. It would not be too difficult to pull off. Keep an eye out for that!
 
 ---
 ### Conclusion
 
+We hope you enjoyed reading about our journey as much as we enjoyed the journey itself!
 
-<!-- The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
+All of us are available for new opportunities, so please feel free to reach out!
 
-When the 2nd person launched an instance of the app, even though they are using the same shared document, they are actually given a unique sharing link with their own unique id pointing to them. When a 3rd person uses the 2nd person’s sharing link, all operations are routed through the 2nd person. Therefore when the 3rd person makes a change, it gets sent to the 2nd person, who then relays that change to the person they were connected to.
-
-As a peer, as long as you are connected to at least one other peer in the network, you should receive changes made by any peer, and changes you make should eventually reach every peer.
-
-<center>
-![twelve](blogImgs/twelve.png "")
-</center>
-<small>
-**DIAGRAM OF THIS**
-</small>
-
-CRDTSync: The first issue we found is when a peer joins the network after other peers have been already collaborating on the document. The new peer needs to be provided a copy of the CRDT from one of the peers in the network. When a new peer attempts to join the shared document by connecting to a target peer, the target peer responds by sending a copy of their CRDT and version vector to the new peer.
-
-findNewTarget: In our initial design, when someone shares their link with other users, those users will connect to that initial peer thereby sending and receiving operations through that peer and any other peers that connect to it later. What if that initial peer decides to leave the network? The other peers become stranded and can no longer send and receive changes to each other. To solve this, we introduced a network list that every peer keeps track of. Every time a new peer enters the network, a message is relayed around the network so that each peer can add that new peer to their network list. Now, in the event that one of your connections leaves the network, you have a list of peers that you can connect with to remain a part of the web.
-
-In the case of 2 peers connected to 1 root peer, if the root peer leaves, both remaining peers attempt to find a new target. The one that goes faster finds the other peer as the possible target and attempts to connect. The other peer accepts the request and adds to its connections. By the time the other one tries to connect, it doesn’t have any possible targets and so it doesn’t connect to anyone and also doesn’t have to since it was connected to.
-
-Network Balancing: To solve this, we introduced the idea of a "connection request". When a new peer clicks an existing peer's sharing link, it doesn't automatically connect to them. Instead, it requests a connection. The peer receiving this request then evaluates whether it wants to accept the request or forward the request on to another peer in the network. If the peer's number of connections is greater than half the network (or 5), then it won't accept the request. Let's show an example.
-
-<center>
-![thirteen](blogImgs/thirteen.png "")
-</center>
-<small>
-**DIAGRAM**
-</small>
-
-In this diagram, 3 peers are connected to the root peer. When a 3rd peer attempts to connect, the root peer has 3 existing connections which is greater than half the network (4/2 = 2). Therefore, instead of accepting the connection request, it will forward the request to one of its other connections, resulting in a more balanced network. Now if any peer were to leave the room, there would still be a way for the remaining peers to communicate.
-
-Outgoing Buffer: Whenever a CRDT sync is received from a peer or a CRDT sync completion notification is received from a peer, the outgoing buffer is processed. The buffer has been collecting the operations that were received from other peers while the sync request/process was in progress.
-
-When a peer responds to a Sync request, it sends its CRDT and version vector to a peer. But while that syncing peer is loading the CRDT into its editor, new operations are being received by the responding peer. Any operations received by the responding peer are added to an outgoing buffer. Once the responding peer receives acknowledgement that sync is complete, it processes the buffer and sends all the buffered operations to that syncing peer.
-
-It looks like we always add insert/delete operations to the outgoing buffer just in case we have a peer that is syncing a CRDT we've sent them. If so, we send them more operations by "processing the outgoing buffer" once we receive word that they've completed their sync. Couldn't they also just have an incoming buffer that isn't processed until their sync is complete on their end?
-
-QUESTION: Why do we need to process the outgoing buffer when receiving a syncResponse, in other words, when receiving a CRDT sync object from a peer who's accepted our connection request. This assumes that we have received insert or delete operations from a peer while waiting for someone to send us a CRDT. Can that happen? If we are waiting for someone to respond to our connection request, we don't have any incoming connections so no one is sending us operations that we'll need to send.
-
-ANSWER: It’s not actually for a SyncResponse. It’s for the case when one of our connections disconnects from us and we need to find a new Target (because we have fewer than 5).
-
-When any one of a peer’s connections closes, it removes it from its connections list. If that peer was its refreshURL, it updates the URL with another peer’s sharing link (if it has an incoming connection to do that with). And finally, if it has less than 5 connections, it finds a new target. This also includes a case where it has zero connections and is in “limbo”. While in limbo, it’s not receiving operations from other peers and it’s not sending local operations to other peers.
-
-To find a new target, it finds a list of peers in the network that we’re not already connected to, and we send a connection request randomly to one of them. If we’re the only one left in the network, then there are no possible targets, and we just wait for someone to try to connect to us before updating our page URL.Cs
-
-QUESTION: What if we sent the received operation to our connections before we applied it to our CRDT? It feels like we're adding network latency by waiting for our local CRDT/editor behavior to complete before relaying operations to other peers.
-
-ANSWER: Because we have to wait for the VV to be updated. If we broadcast before inserting/deleting, then one of our peers could process it and send it back to us before we finished processing and updating the VV. It is unlikely to happen, like it only happens if our computer is extremely slow compared to theirs. But it guarantees that we don’t accidentally apply a duplicate. -->
+{% include team.html %}
