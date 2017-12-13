@@ -674,19 +674,19 @@ Load balancing is not an perfect solution. While it does remove a single point o
 
 This is an ongoing project and the Conclave Team has several plans in store.
 
-#### Better Connection Distribution
+**Better Connection Distribution**
 
 The first being to further improve connection distribution for users in the network. A possible we are entertaining is have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drop and force them to find a new peer.
 
-#### Mass insertions and deletions
+**Mass insertions and deletions**
 
 Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of larges cuts and pastes.
 
-#### Automatic testing for P2P network
+**Automatic testing for P2P network**
 
 Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
 
-#### Atom plug-in and embeddable browser editor.
+**Atom plug-in and embeddable browser editor**
 
 {: .center}
 ![teletype](/blogImgs/teletype.png)
