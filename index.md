@@ -478,12 +478,12 @@ At this point, we've described the major components of our system architecture. 
 
 As our team continued to use Conclave, we noticed many aspects of the user experience that needed to be improved. These areas of improvement can be broken down into three categories:
 
-* Editor Features
-* CRDT Structure
-* Peer-To-Peer Connection management
+1. Editor Features
+2. CRDT Structure
+3. Peer-To-Peer Connection management
 
 ---
-### Editor Features
+### 1. Editor Features
 
 Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
@@ -534,7 +534,7 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
 #### Upload and Download
 
 ---
-### CRDT Structure
+### 2. CRDT Structure
 
 As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
@@ -573,7 +573,7 @@ Where it took our original CRDT upwards of 14 seconds to complete about 100 thou
 We were pretty happy with that.
 
 ---
-### Peer-To-Peer Connection Management
+### 3. Peer-To-Peer Connection Management
 
 #### Network List and Peer Discovery
 
