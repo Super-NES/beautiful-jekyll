@@ -494,7 +494,7 @@ Having several people edit a document at the same time can be a chaotic experien
 That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
 
 {: .center}
-![remote_cursors](/bloImgs/remote_cursors.png)
+![remote_cursors](/blogImgs/remote_cursors.png)
 
 Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
 
