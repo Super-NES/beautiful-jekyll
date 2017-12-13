@@ -5,7 +5,7 @@ subtitle: Collaborate in private
 use-site-title: true
 ---
 
-[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay]().
+[Conclave](https://conclave-app.herokuapp.com/) is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://www.linkedin.com/in/elise-olivares-123370141/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
 
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
 
@@ -25,6 +25,9 @@ A character can be inserted or deleted from the text simply by referencing a pos
   </figcaption>
 </figure>
 
+We first thought of using an HTML textarea as our text editor but soon realized that a simple textarea is not able to detect the index at which a letter is inserted or deleted. A specialized editor was needed.
+
+We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
 
 ---
 ### What is a collaborative text editor?
@@ -153,8 +156,6 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
-At this point our editor allows multiple users to edit the same document, and it resolves conflicts by using CRDTs to achieve both commutativity and idempotency of its operations.
-
 ---
 ### Coding a CRDT
 
@@ -185,9 +186,9 @@ A CRDT must handle 4 basic operations:
 * Remote Insert
 * Remote Delete
 
-Local operations are operations that a user makes themself in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
+Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
 
-**Local Insert**
+##### Local Insert
 
 When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
 
@@ -207,51 +208,77 @@ When inserting a character locally, the only information needed is the character
 You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the relative position of the character object.
 
 ```javascript
-generateChar(val, index) {
-  const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
-  const posAfter = (this.struct[index] && this.struct[index].position) || [];
-  const newPos = this.generatePosBetween(posBefore, posAfter);
-  // ...
-}
+  generateChar(val, index) {
+    const posBefore = (this.struct[index - 1] && this.struct[index - 1].position) || [];
+    const posAfter = (this.struct[index] && this.struct[index].position) || [];
+    const newPos = this.generatePosBetween(posBefore, posAfter);
+    // ...
+  }
 ```
 
-Since each character object's position is relative to the characters around if, we use the positions of the surrounding characters to generate a position for the new character.
+Since each character object's position is relative to the characters around it, the positions of the surrounding characters are used to generate a position for the new character.
 
 As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
 
 ```javascript
-generatePosBetween(pos1, pos2, newPos=[]) {
-  let id1 = pos1[0];
-  let id2 = pos2[0];
+  generatePosBetween(pos1, pos2, newPos=[]) {
+    let id1 = pos1[0];
+    let id2 = pos2[0];
 
-  if (id2.digit - id1.digit > 1) {
+    if (id2.digit - id1.digit > 1) {
 
-    let newDigit = this.generateIdBetween(id1.digit, id2.digit);
-    newPos.push(new Identifier(newDigit, this.siteId));
-    return newPos;
+      let newDigit = this.generateIdBetween(id1.digit, id2.digit);
+      newPos.push(new Identifier(newDigit, this.siteId));
+      return newPos;
 
-  } else if (id2.digit - id1.digit === 1) {
+    } else if (id2.digit - id1.digit === 1) {
 
-    newPos.push(id1);
-    return this.generatePosBetween(pos1.slice(1), pos2, newPos);
+      newPos.push(id1);
+      return this.generatePosBetween(pos1.slice(1), pos2, newPos);
 
+    }
   }
-}
 ```
 
+##### Local Delete
 
-<!-- Furthermore, since positions can be thought of as a tree structure, a recursive algorithm can be used to generate position IDs for new characters.
+Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
-<figure>
-  <center>
-    <img src="blogImgs/id_algo.png" alt="id tree" />
-  </center>
-  <figcaption>
-    <small><strong>Simplified recursive algorithm to generate relative positions</strong></small>
-  </figcaption>
-</figure> -->
+```javascript
+  localDelete(idx) {
+    return this.struct.splice(idx, 1)[0];
+  }
+```
 
- Building that was pretty challenging by itself. But we wondered how we could make our application even better.
+##### Remote Operations
+
+Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
+
+To make this as efficient as possible, a binary search algorithm was implemented. The algorithm uses the character's relative position to find it's index in the array. Or, in the case of remote inserts, the binary search is used to find where it should be inserted.
+
+If it is a remote insertion, the character value and index are returned in order to insert the letter into the editor. For remote deletions, only the index is returned.
+
+```javascript
+  remoteInsert(char) {
+    const index = this.findInsertIndex(char);
+    this.struct.splice(index, 0, char);
+
+    return { char: char.value, index: index };
+  }
+
+  remoteDelete(char) {
+    const index = this.findIndexByPosition(char);
+    this.struct.splice(index, 1);
+
+    return index;
+  }
+```
+
+With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTS.
+
+Eventual consistency was achieved. **HUZZAH!**
+
+However, that wasn't the end of it. While building a CRDT and a simple central server relay were already rather challenging, we wondered how we could make our application even better.
 
 ---
 ### What are the limitations of using a central server?
@@ -357,7 +384,7 @@ According to [WebRTC Security](http://webrtc-security.github.io/):
 
 > Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
 
-You can rest assured that all the data transferred on Conclave is secure and protected from malicious man-in-the-middle attacks.
+We can safely say that all of the data that is transferred through Conclave is secure and protected from malicious man-in-the-middle attacks.
 
 ---
 ### Version Vector
@@ -446,52 +473,220 @@ At this point, we've described the major components of our system architecture. 
   </figcaption>
 </figure>
 
+---
 ### Optimizations
 
-The way our app works is that a user opens Conclave and is provided with an empty document and a link to share access to that document. The sharing link can be given to fellow collaborators through any means (e.g. text, email, Slack), and when a person clicks the link, they can view and edit the shared document. The sharing link is essentially a pointer to a specific peer, allowing you to connect to that peer. Once connected, any changes that person makes to their version of the document are sent to you and any change you make to your version of the document are sent to them.
+As our team continued to use Conclave, we noticed many aspects of the user experience that needed to be improved. These areas of improvement can be broken down into three categories:
 
-When the 2nd person launched an instance of the app, even though they are using the same shared document, they are actually given a unique sharing link with their own unique id pointing to them. When a 3rd person uses the 2nd person’s sharing link, all operations are routed through the 2nd person. Therefore when the 3rd person makes a change, it gets sent to the 2nd person, who then relays that change to the person they were connected to.
+1. Editor Features
+2. CRDT Structure
+3. Peer-To-Peer Connection management
 
-As a peer, as long as you are connected to at least one other peer in the network, you should receive changes made by any peer, and changes you make should eventually reach every peer.
+---
+### 1. Editor Features
 
-<center>
-![twelve](blogImgs/twelve.png "")
-</center>
-<small>
-**DIAGRAM OF THIS**
-</small>
+Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
-CRDTSync: The first issue we found is when a peer joins the network after other peers have been already collaborating on the document. The new peer needs to be provided a copy of the CRDT from one of the peers in the network. When a new peer attempts to join the shared document by connecting to a target peer, the target peer responds by sending a copy of their CRDT and version vector to the new peer.
+#### Remote Cursors
 
-findNewTarget: In our initial design, when someone shares their link with other users, those users will connect to that initial peer thereby sending and receiving operations through that peer and any other peers that connect to it later. What if that initial peer decides to leave the network? The other peers become stranded and can no longer send and receive changes to each other. To solve this, we introduced a network list that every peer keeps track of. Every time a new peer enters the network, a message is relayed around the network so that each peer can add that new peer to their network list. Now, in the event that one of your connections leaves the network, you have a list of peers that you can connect with to remain a part of the web.
+Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
-In the case of 2 peers connected to 1 root peer, if the root peer leaves, both remaining peers attempt to find a new target. The one that goes faster finds the other peer as the possible target and attempts to connect. The other peer accepts the request and adds to its connections. By the time the other one tries to connect, it doesn’t have any possible targets and so it doesn’t connect to anyone and also doesn’t have to since it was connected to.
+That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
 
-Network Balancing: To solve this, we introduced the idea of a "connection request". When a new peer clicks an existing peer's sharing link, it doesn't automatically connect to them. Instead, it requests a connection. The peer receiving this request then evaluates whether it wants to accept the request or forward the request on to another peer in the network. If the peer's number of connections is greater than half the network (or 5), then it won't accept the request. Let's show an example.
+{: .center}
+![remote_cursors](/blogImgs/remote_cursors.png)
 
-<center>
-![thirteen](blogImgs/thirteen.png "")
-</center>
-<small>
-**DIAGRAM**
-</small>
+Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
 
-In this diagram, 3 peers are connected to the root peer. When a 3rd peer attempts to connect, the root peer has 3 existing connections which is greater than half the network (4/2 = 2). Therefore, instead of accepting the connection request, it will forward the request to one of its other connections, resulting in a more balanced network. Now if any peer were to leave the room, there would still be a way for the remaining peers to communicate.
+However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent all nodes while preventing different users from ending up with the same color?
 
-Outgoing Buffer: Whenever a CRDT sync is received from a peer or a CRDT sync completion notification is received from a peer, the outgoing buffer is processed. The buffer has been collecting the operations that were received from other peers while the sync request/process was in progress.
+Ensuring that users have unique cursors was as simple as adding an animal name to the cursor and having a large number of possible color/animal combinations.
 
-When a peer responds to a Sync request, it sends its CRDT and version vector to a peer. But while that syncing peer is loading the CRDT into its editor, new operations are being received by the responding peer. Any operations received by the responding peer are added to an outgoing buffer. Once the responding peer receives acknowledgement that sync is complete, it processes the buffer and sends all the buffered operations to that syncing peer.
+{: .center}
+![combinations](/blogImgs/combinations.png)
 
-It looks like we always add insert/delete operations to the outgoing buffer just in case we have a peer that is syncing a CRDT we've sent them. If so, we send them more operations by "processing the outgoing buffer" once we receive word that they've completed their sync. Couldn't they also just have an incoming buffer that isn't processed until their sync is complete on their end?
+To address the consistency issue, we ended up creating a simple modulo hashing algorithm that would reduce each user's ID into an index that mapped to a animal and color pairing.
 
-QUESTION: Why do we need to process the outgoing buffer when receiving a syncResponse, in other words, when receiving a CRDT sync object from a peer who's accepted our connection request. This assumes that we have received insert or delete operations from a peer while waiting for someone to send us a CRDT. Can that happen? If we are waiting for someone to respond to our connection request, we don't have any incoming connections so no one is sending us operations that we'll need to send.
+```javascript
+  addRemoteCursor() {
+    // ...
 
-ANSWER: It’s not actually for a SyncResponse. It’s for the case when one of our connections disconnects from us and we need to find a new Target (because we have fewer than 5).
+    const color = generateItemFromHash(this.siteId, CSS_COLORS);
+    const name = generateItemFromHash(this.siteId, ANIMALS);
 
-When any one of a peer’s connections closes, it removes it from its connections list. If that peer was its refreshURL, it updates the URL with another peer’s sharing link (if it has an incoming connection to do that with). And finally, if it has less than 5 connections, it finds a new target. This also includes a case where it has zero connections and is in “limbo”. While in limbo, it’s not receiving operations from other peers and it’s not sending local operations to other peers.
+    // ...
+  }
 
-To find a new target, it finds a list of peers in the network that we’re not already connected to, and we send a connection request randomly to one of them. If we’re the only one left in the network, then there are no possible targets, and we just wait for someone to try to connect to us before updating our page URL.Cs
+  function generateItemFromHash(siteId, collection) {
+    const hashIdx = hashAlgo(siteId, collection);
 
-QUESTION: What if we sent the received operation to our connections before we applied it to our CRDT? It feels like we're adding network latency by waiting for our local CRDT/editor behavior to complete before relaying operations to other peers.
+    return collection[hashIdx];
+  }
 
-ANSWER: Because we have to wait for the VV to be updated. If we broadcast before inserting/deleting, then one of our peers could process it and send it back to us before we finished processing and updating the VV. It is unlikely to happen, like it only happens if our computer is extremely slow compared to theirs. But it guarantees that we don’t accidentally apply a duplicate.
+  function hashAlgo(input, collection) {
+    const filteredNum = input.toLowerCase().replace(/[a-z\-]/g, '');
+    return Math.floor(filteredNum * 13) % collection.length;
+  }
+```
+
+#### Video Chat
+
+#### Upload and Download
+
+---
+### 2. CRDT Structure
+
+As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+
+Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
+
+In order to use this object in our CRDT, it needs to be converted into a linear index. This involves retrieving the document, splitting it by new line characters, iterating over the lines and calculating the index. This process is reversed in the case of remote insertions/deletions.
+
+{: .center}
+![editor_position](/blogImgs/editor_position.png)
+
+That is a lot of overhead to find a simple index. This lead us to wonder what data structure would be more efficient for our CRDT. That’s when we realized the CodeMirror editor itself is structured as a two-dimensional array.
+
+{: .center}
+![two_dimen_array](/blogImgs/two_dimen_array.png)
+
+If we built our CRDT to match the layout of our editor, we could get rid of that overhead. It turns out it has a lot of other benefits as well.
+
+{: .center}
+![crdt_table](/blogImgs/crdt_table.png)
+
+Search went from **O(log N)** — N being all the characters in the document — to O(log L + log C) — L being the total number of lines and C being the number of characters in that line.
+
+We were able to do this by using two binary searches. One to find the correct line and the other to find the character in that line.
+
+In the case of inserting and deleting, the worst time complexity for linear arrays is **O(N)** due to shifting, but it’s only O(C) for two-dimensional arrays because only the characters in that line need to shifted.
+
+Finally, we were able to reduce the Find Index complexity from **O(N)** to **O(1)** because we can pass the position object that CodeMirror returns directly to the CRDT without any need of linearization or conversion.
+
+We even wrote test scripts and recorded how long it took each structure to complete the script. Here are the results:
+
+{: .center}
+![graph](/blogImgs/graph.png)
+
+Where it took our original CRDT upwards of 14 seconds to complete about 100 thousand operations, our improved two-dimensional structure can do it in less than a second.
+
+We were pretty happy with that.
+
+---
+### 3. Peer-To-Peer Connection Management
+
+The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
+
+---
+
+**Sidenote:** We define *"network"* as the web of peer-to-peer connections. In this context, the *"network"* is only made up of users --  there are no servers.
+
+---
+
+One problem we ran into was users getting stranded or cut off from the network. Say we have three users, like in the diagram below.
+
+{: .center}
+![network_3](/blogImgs/network_3.png)
+
+Peer 2 and Peer 3 are connected through Peer 1, who acts as the message relay.
+
+But what if Peer 1 leaves?
+
+{: .center}
+![network_cut](/blogImgs/network_cut.png)
+
+Now Peer 2 and Peer 3 are stranded and can no longer collaborate. The collaboration is essentially over.
+
+In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
+
+#### Network List and Peer Discovery
+
+The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
+
+{: .center}
+![network_list](/blogImgs/network_list.png)
+
+This allows each user to know of all the other users, even if they’re not directly connected to each other. Now, if a user they are connected to leaves, they can pick someone random from the list and connect to them, allowing for the editing session to continue.
+
+{: .center}
+![peer_found](/blogImgs/peer_found.png)
+
+Is it possible to avoid a single point of failure in the first place? After all, that was the purpose of creating a peer-to-peer network in the first place.
+
+#### Load Balancing
+
+Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
+
+{: .center}
+![conn_request](/blogImgs/conn_request.png)
+
+Whoever receives the request will evaluate it to see if they have reached the maximum number of connections. If they have, they will forward the request to someone else in the network. If they haven't, they will connect back.
+
+```javascript
+  evaluateRequest(peerId, siteId) {
+    if (this.hasReachedMax()) {
+      this.forwardConnRequest(peerId, siteId);
+    } else {
+      this.acceptConnRequest(peerId, siteId);
+    }
+  }
+```
+
+<figure>
+  <center>
+    <img src="blogImgs/request_forward.png" alt="Forwarded Request" />
+  </center>
+  <figcaption>
+    <small><strong>Forwarded Connection Request</strong></small>
+  </figcaption>
+</figure>
+
+**What is the maximum number of connections?**
+
+To answer that question, we had to calculate what was the average number of connections we wanted every user to have. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues.
+
+We decided that a logarithmic scale (**O(log(N))**) was ideal. In a network with 100 users, each user would ideally have around 5 connections, so that was the number we started with. If the network grows to be larger than that, then the max changes to being half the size of the network.
+
+```javascript
+  hasReachedMax() {
+    const halfTheNetwork = Math.ceil(this.controller.network.length / 2);
+    const tooManyConns = this.connections.length > Math.max(halfTheNetwork, 5);
+
+    return tooManyConns;
+  }
+```
+
+Load balancing is not an perfect solution. While it does remove a single point of failure, it doesn't not remove bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
+
+---
+### Future Plans
+
+This is an ongoing project and the Conclave Team has several plans in store.
+
+#### Better Connection Distribution
+
+The first being to further improve connection distribution for users in the network. A possible we are entertaining is have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drop and force them to find a new peer.
+
+#### Mass insertions and deletions
+
+Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of larges cuts and pastes.
+
+#### Automatic testing for P2P network
+
+Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
+
+#### Atom plug-in and embeddable browser editor.
+
+{: .center}
+![teletype](/blogImgs/teletype.png)
+
+Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own Atom plugin, or at least an embeddable collaborative editor for the browser. It would not be too difficult to pull off. Keep an eye out for that!
+
+---
+### Conclusion
+
+We hope you enjoyed reading about our journey as much as we enjoyed the journey itself!
+
+All of us are available for new opportunities, so please feel free to reach out!
+
+{% include team.html %}

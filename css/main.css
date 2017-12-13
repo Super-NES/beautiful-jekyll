@@ -76,6 +76,19 @@ hr.small {
   height: 243px;
 }
 
+.spacing {
+  margin-top: 35px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.center img {
+  display: block;
+  margin: 0 auto;
+}
+
 .sunny {
   transform: scaleX(-1);
   filter: FlipH;
