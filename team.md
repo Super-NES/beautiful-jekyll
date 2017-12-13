@@ -1,6 +1,6 @@
 ---
 layout: page
-title: Our Team
+title: Conclave Team
 ---
 
 {% include team.html %}
