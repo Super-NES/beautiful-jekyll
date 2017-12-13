@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Conclave
-subtitle: Collaborate in private
+subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
