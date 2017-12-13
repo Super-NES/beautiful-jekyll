@@ -14,7 +14,7 @@ baseurl: "/conclave-site"
 # Of course don't forget to change the username and projectname to YOUR username and project
 
 # Name of website
-title: Conclave
+title: Conclave - The Case Study
 
 # Short description of your site
 description: A private and secure real-time collaborative text editor
@@ -23,9 +23,8 @@ description: A private and secure real-time collaborative text editor
 
 # List of links in the navigation bar
 navbar-links:
-  Home: ""
+  Try Conclave!: "https://conclave-app.herokuapp.com/"
   Our Team: "team"
-  Try it!: "https://conclave-app.herokuapp.com/"
   Fork on GitHub: "https://github.com/conclave-team/conclave"
 
 # Image to show in the navigation bar - image must be a square (width = height)
