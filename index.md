@@ -494,11 +494,11 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 3. Peer-To-Peer Connection management
 
 ---
-### Editor Features
+#### Editor Features
 
 Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
-#### Remote Cursors
+##### Remote Cursors
 
 Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
@@ -540,12 +540,12 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
   }
 ```
 
-#### Video Chat
+##### Video Chat
 
-#### Upload and Download
+##### Upload and Download
 
 ---
-### CRDT Structure
+#### CRDT Structure
 
 As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
@@ -584,7 +584,7 @@ Where it took our original CRDT upwards of 14 seconds to complete about 100 thou
 We were pretty happy with that.
 
 ---
-### Peer-To-Peer Connection Management
+#### Peer-To-Peer Connection Management
 
 The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
@@ -610,7 +610,7 @@ Now Peer 2 and Peer 3 are stranded and can no longer collaborate. The collaborat
 
 In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
 
-#### Network List and Peer Discovery
+##### Network List and Peer Discovery
 
 The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
 
@@ -624,7 +624,7 @@ This allows each user to know of all the other users, even if they’re not dire
 
 Is it possible to avoid a single point of failure in the first place? After all, that was the purpose of creating a peer-to-peer network in the first place.
 
-#### Load Balancing
+##### Load Balancing
 
 Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
 
