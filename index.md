@@ -660,8 +660,8 @@ However, through testing and trial-and-error, we discovered that a logarithmic s
 
 ```javascript
   hasReachedMax() {
-    const logNetwork = Math.ceil(Math.log(this.network.length));
-    const tooManyConns = this.connections.length > Math.max(logNetwork, 5);
+    const partOfNetwork = Math.ceil(Math.log(this.network.length));
+    const tooManyConns = this.connections.length > Math.max(partOfNetwork, 5);
 
     return tooManyConns;
   }
