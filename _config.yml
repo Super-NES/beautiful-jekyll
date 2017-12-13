@@ -14,19 +14,18 @@ baseurl: "/conclave-site"
 # Of course don't forget to change the username and projectname to YOUR username and project
 
 # Name of website
-title: Conclave
+title: Conclave: The Case Study
 
 # Short description of your site
-description: Collaborate in private
+description: A private and secure real-time collaborative text editor
 
 # --- Navigation bar options --- #
 
 # List of links in the navigation bar
 navbar-links:
-  Home: ""
-  Team: "team"
-  Demo: "https://conclave-app.herokuapp.com/"
-  GitHub Project: "https://github.com/conclave-team/conclave"
+  Try It!: "https://conclave-app.herokuapp.com/"
+  Our Team: "team"
+  Fork on GitHub: "https://github.com/conclave-team/conclave"
 
 # Image to show in the navigation bar - image must be a square (width = height)
 # Remove this parameter if you don't want an image in the navbar
@@ -64,7 +63,7 @@ footer-links-active:
   email: false
   twitter: false
   google-plus: false
-  github: true
+  github: false
   reddit: false
   linkedin: false
   xing: false
@@ -87,7 +86,7 @@ share-links-active:
 
 # How to display the link to the website in the footer
 # Remove this if you don't want a link in the footer
-url-pretty: "Conclave"  # eg. "deanattali.com/beautiful-jekyll"
+# url-pretty: "Conclave"  # eg. "deanattali.com/beautiful-jekyll"
 
 # --- Misc --- #
 # Fill in your Disqus shortname (NOT the userid) if you want to support Disqus comments
