@@ -76,6 +76,10 @@ hr.small {
   height: 243px;
 }
 
+.spacing {
+  margin-top: 20px;
+}
+
 .sunny {
   transform: scaleX(-1);
   filter: FlipH;
