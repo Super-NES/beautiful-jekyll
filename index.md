@@ -591,7 +591,7 @@ Since there is no server to store documents, we realized we needed to provide a 
 
 When the download button is clicked, the text in the editor is converted to a plain text blob object. An invisible link is created with its href property set to this blob as a URL and its download property set to the filename (Conclave and a timestamp). The link is added to the DOM, clicked, and then removed.
 
-On the other hand, what if someone wants to continue editing a file they downloaded earlier or start with something other than a blank document? We decided to add the ability to upload a file, also. To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users join a collaboration session will not see the upload button.
+On the other hand, what if someone wants to continue editing a file they downloaded earlier or start with something other than a blank document? We decided to add the ability to upload a file, also. To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users joining a collaboration session will not see the upload button.
 
 ```javascript
   fileSelect.onchange = () => {
