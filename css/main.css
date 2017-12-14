@@ -73,6 +73,7 @@ hr.small {
 }
 
 .team-member img {
+  border-radius: 5%;
   height: 243px;
 }
 
