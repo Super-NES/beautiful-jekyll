@@ -5,7 +5,7 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-Conclave is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://www.linkedin.com/in/elise-olivares-123370141/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
+Conclave is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://elisejane.github.io/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
 
 [Click here](https://conclave-app.herokuapp.com/)  to start using Conclave right now!
 
@@ -542,7 +542,14 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
 
 ##### Video Chat
 
+We already had WebRTC in place for our data communication, so it was a small leap
+to add video chat capabilities to our site.
+
 ##### Upload and Download
+
+When a user opens a new document, they have the option of uploading text from their
+computer to begin with. Anyone can download the current state of the document at
+any time.
 
 ---
 #### CRDT Structure
