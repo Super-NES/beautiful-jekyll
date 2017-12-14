@@ -751,12 +751,12 @@ Right now our CRDT can only insert and delete one character at a time. Being abl
 
 Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
 
-**Atom plug-in and embeddable browser editor**
+**Embeddable browser editor**
 
 {: .center}
 ![teletype](/blogImgs/teletype.png)
 
-Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own Atom plugin, or at least an embeddable collaborative editor for the browser. It would not be too difficult to pull off. Keep an eye out for that!
+Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
 
 ---
 ## Conclusion
