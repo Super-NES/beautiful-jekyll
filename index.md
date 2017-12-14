@@ -540,6 +540,7 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
   }
 ```
 
+---
 #### Video Chat
 
 Since we were already using WebRTC for our data communication, we realized it would be relatively easy to add video chat capabilities to our site. It's often easier to communicate verbally and sometimes it's just nice to see a face.
