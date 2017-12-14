@@ -574,19 +574,19 @@ In order for WebRTC to detect the media devices (camera and speaker) of any comp
 Since there is no server to store documents, we realized we needed to provide a way for users to save what they are working on to use elsewhere at another time. Creating download functionality was simple enough. Any user can download the current contents of the editor to their computers under a timestamped filename.
 
 ```javascript
-downloadButton.onclick = () => {
-  const text = editor.value();
-  const blob = new Blob([text], { type:"text/plain" });
-  const link = document.createElement("a");
+  downloadButton.onclick = () => {
+    const text = editor.value();
+    const blob = new Blob([text], { type:"text/plain" });
+    const link = document.createElement("a");
 
-  link.style.display = "none";
-  link.download = "Conclave-"+Date.now();
-  link.href = window.URL.createObjectURL(blob);
-  link.onclick = e => document.body.removeChild(e.target);
+    link.style.display = "none";
+    link.download = "Conclave-"+Date.now();
+    link.href = window.URL.createObjectURL(blob);
+    link.onclick = e => document.body.removeChild(e.target);
 
-  document.body.appendChild(link);
-  link.click();
-}
+    document.body.appendChild(link);
+    link.click();
+  }
 ```
 
 When the download button is clicked, the text in the editor is converted to a plain text blob object. An invisible link is created with its href property set to this blob as a URL and its download property set to the filename (Conclave and a timestamp). The link is added to the DOM, clicked, and then removed.
