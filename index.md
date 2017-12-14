@@ -5,7 +5,7 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-Conclave is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://www.linkedin.com/in/elise-olivares-123370141/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
+Conclave is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://elisejane.github.io/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
 
 [Click here](https://conclave-app.herokuapp.com/)  to start using Conclave right now!
 
@@ -73,9 +73,9 @@ This time, let's say both users want to delete the "H" from "CHAT".
   </figcaption>
 </figure>
 
-Looks like that doesn't work either! While each user's document looks the same, they both ended up with "AT" instead of "CAT". This demonstrates that repeating the same operation multiple times produces different results. In mathematical terms, the delete operations are not idempotent (A * 1 * 1 !== A).
+Looks like that doesn't work either! While each user's document looks the same, they both ended up with "AT" instead of "CAT". This demonstrates that repeating the same operation multiple times produces different results. In mathematical terms, the delete operations are not idempotent.
 
-It appears that we can't collaborate using indices like with a single user text editor. Since there are multiple users making changes to the same shared document, there is the possibility for changes to be made concurrently (or at the same time). Dealing with these conflicts so that each user sees a consistent and intentional result is the primary challenge of collaborative text editor.
+It appears that we can't collaborate using indices like with a single user text editor. Since there are multiple users making changes to the same shared document, there is the possibility for changes to be made concurrently (or at the same time). Dealing with these conflicts so that each user sees a consistent and intentional result is the primary challenge of a collaborative text editor.
 
 As demonstrated in the two examples above, our solution must satisfy the two mathematical properties of commutativity and idempotency.
 
@@ -85,7 +85,7 @@ As demonstrated in the two examples above, our solution must satisfy the two mat
 How can we solve this challenge?
 
 ---
-### Operational Transformation
+### Operational Transformation (OT)
 
 One possible solution we found is called Operational Transformation (OT). OT is an algorithm that compares concurrent operations and detects if they will cause the document state to diverge. It then modifies the operations so that they will merge together. We will represent OT as a "black box" for now.
 
@@ -102,14 +102,14 @@ Returning to an earlier example, when User1 receives the `delete(0)` operation f
 
 Without showing our other example, we can imagine that when a user tries to delete a character that's already been deleted, OT recognizes this and skips the operation. In basic terms, OT provides a strategy to achieve commutativity and idempotency.
 
-Operational Transformation was the first popular way to allow for collaborative editing. The first wave of collaborative editors, Google Wave, Etherpad, and Firepad, all relied on the OT to work. Unfortunately, the verdict is that it's tough to implement.
+Operational Transformation was the first popular way to allow for collaborative editing. The first collaborative editors, Google Wave, Etherpad, and Firepad, all relied on OT to work. Unfortunately, the verdict is that it's tough to implement.
 
 > “Unfortunately, implementing OT sucks. There's a million algorithms with different tradeoffs, mostly trapped in academic papers. The algorithms are really hard and time consuming to implement correctly. […] Wave took 2 years to write and if we rewrote it today, it would take almost as long to write a second time.”
 
 > Joseph Gentle (Google Wave / ShareJS Engineer)
 
 ---
-### CRDTs
+### Conflict-Free Replicated Data Type (CRDT)
 
 An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) was discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
 
@@ -130,7 +130,7 @@ With globally unique characters, when a user sends a message to another user to 
 
 The 2nd requirement of CRDTs is that each character created contains a position that is relative to the characters around it. This relative position never changes and can always be used to find the character's position in the document.
 
-In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relation to) "C" and "A".
+In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relative to) "C" and "A".
 
 <figure>
   <center>
@@ -143,14 +143,14 @@ In the "CAT" example, when user inserts "H" at position 1, they are actually try
 
 CRDTs accomplish this by employing fractional indices. Instead of inserting the “H” at position 1, it’s inserted at position 0.5. No matter what happens to the surrounding characters, “H” will be created in a place that matches the user’s intention.
 
-To represent fractional indices in code, we used a list of integers, otherwise known as position identifiers. We can use this use this list of position identifiers to locate the correct position that a character should be inserted into the document.
+To represent fractional indices in code, we used a list of integers, otherwise known as position identifiers. We can use this list of position identifiers to locate the correct position that a character should be inserted into the document.
 
 <figure>
   <center>
     <img src="blogImgs/six.png" alt="fractional indices" />
   </center>
   <figcaption>
-    <small><strong>Indices are relative and fractional instead of absolute.</strong></small>
+    <small><strong>Indices are relative and fractional instead of absolute integers.</strong></small>
   </figcaption>
 </figure>
 
@@ -170,7 +170,7 @@ Another way to imagine fractional indices is as a tree. As characters are insert
 ---
 ### Coding a CRDT
 
-Talking about CRDTs in theory is well enough, how does someone go about coding it? It's actually much simpler than you might think.
+Talking about CRDTs in theory is well enough, but how does someone go about coding it? It's actually simpler than you might think.
 
 A CRDT needs certain properties to be functional:
 * A globally unique SiteID
@@ -189,19 +189,19 @@ Additionally, each CRDT needs to have a data structure that houses all the chara
   }
 ```
 
-#### CRDT Operations
-
 A CRDT must handle 4 basic operations:
 * Local Insert
 * Local Delete
 * Remote Insert
 * Remote Delete
 
+#### Local Operations
+
 Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
 
-##### Local Insert
+**Local Insert**
 
-When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcasted out to the other users.
+When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcast to the other users.
 
 ```javascript
   class CRDT {
@@ -251,7 +251,7 @@ As mentioned before, relative positions can be thought of as a tree structure. W
   }
 ```
 
-##### Local Delete
+**Local Delete**
 
 Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
@@ -261,7 +261,7 @@ Luckily, deleting a character from the CRDT is not as complicated as inserting o
   }
 ```
 
-##### Remote Operations
+#### Remote Operations
 
 Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
 
@@ -285,7 +285,7 @@ If it is a remote insertion, the character value and index are returned in order
   }
 ```
 
-With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTS.
+With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTs.
 
 Eventual consistency was achieved. **HUZZAH!**
 
@@ -305,7 +305,7 @@ The current system architecture relies on the client-server model of communicati
   </figcaption>
 </figure>
 
-We started with this model because it allowed us to first focus on resolving editing conflicts among users. Building that was pretty challenging by itself but we wondered how we could make our application even better. Could we change our application architecture to a better model? Before we get into what we changed, let's talk about the limitations of our current central server architecture.
+We started with this model because it allowed us to first focus on resolving editing conflicts among users. Now that we had achieved that, could we change our application architecture to a better model? Before we get into what we changed, let's talk about the limitations of our current central server architecture.
 
 The first limitation is that we currently have an unnecessarily high latency between users. All operations are currently routed through the server, so even if users are sitting right next to each other, they still must communicate with each other through the server.
 
@@ -494,11 +494,11 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 3. Peer-To-Peer Connection management
 
 ---
-### 1. Editor Features
+#### Editor Features
 
 Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
-#### Remote Cursors
+##### Remote Cursors
 
 Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
@@ -509,7 +509,7 @@ That is the situation we ran into. Without a way to identify other person on the
 
 Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
 
-However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent all nodes while preventing different users from ending up with the same color?
+However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent between all nodes while preventing different users from ending up with the same color?
 
 Ensuring that users have unique cursors was as simple as adding an animal name to the cursor and having a large number of possible color/animal combinations.
 
@@ -540,16 +540,80 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
   }
 ```
 
-#### Video Chat
+##### Video Chat
 
-#### Upload and Download
+Since we were already using WebRTC for our data communication, we realized it would be relatively easy to add video chat capabilities to our site. It's often easier to communicate verbally and sometimes it's just nice to see a face.
+
+{: .center}
+![video_chat](/blogImgs/video.png)
+
+Users can click on any animal name in their list of peers to place a call request. The receiving user is alerted and must click the animal name to answer the call. The video modal can be dragged around the screen and minimized with a click. Clicking the **x** ends the call and all media channels are closed. Each user can only be on a call with one other user at a time.
+
+```javascript
+  videoCall(id, ms) {
+    navigator.mediaDevices.getUserMedia({audio: true, video: true})
+    .then(ms => {
+      if (!currentStream) {
+        const callObj = peer.call(id, ms);
+        callObj.on('stream', stream => {
+          streamVideo(stream, callObj);
+          callObj.on('close', () => {
+            currentStream.localStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+          });
+        });
+      }
+    });
+  }
+```
+
+In order for WebRTC to detect the media devices (camera and speaker) of any computer trying to join a video call, the initial signaling must be conducted over HTTPS. This prompted us to switch our server configuration to support HTTPS, which was obviously a really good change.
+
+##### Download and Upload
+
+Since there is no server to store documents, we realized we needed to provide a way for users to save what they are working on to use elsewhere at another time. Creating download functionality was simple enough. Any user can download the current contents of the editor to their computers under a timestamped filename.
+
+```javascript
+  downloadButton.onclick = () => {
+    const text = editor.value();
+    const blob = new Blob([text], { type:"text/plain" });
+    const link = document.createElement("a");
+
+    link.style.display = "none";
+    link.download = "Conclave-"+Date.now();
+    link.href = window.URL.createObjectURL(blob);
+    link.onclick = e => document.body.removeChild(e.target);
+
+    document.body.appendChild(link);
+    link.click();
+  }
+```
+
+When the download button is clicked, the text in the editor is converted to a plain text blob object. An invisible link is created with its href property set to this blob as a URL and its download property set to the filename (Conclave and a timestamp). The link is added to the DOM, clicked, and then removed.
+
+On the other hand, what if someone wants to continue editing a file they downloaded earlier or start with something other than a blank document? We decided to add the ability to upload a file, also. To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users joining a collaboration session will not see the upload button.
+
+```javascript
+  fileSelect.onchange = () => {
+    const file = document.querySelector("#file").files[0];
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      const fileText = e.target.result;
+      localInsert(fileText, { line: 0, ch: 0 });
+      replaceText(crdt.toText());
+    }
+    fileReader.readAsText(file, "UTF-8");
+  }
+```
+
+We used javaScript's built-in FileReader to read the contents of the file selected for upload. The text is inserted into the user's CRDT and then the editor view is replaced entirely by the data in the CRDT. Updating the editor is fast but insertion into the data structure happens one character at a time, so large documents take quite a while. This is an area for future improvement.
 
 ---
-### 2. CRDT Structure
+#### CRDT Structure
 
-As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
-Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
+Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted into or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
 
 In order to use this object in our CRDT, it needs to be converted into a linear index. This involves retrieving the document, splitting it by new line characters, iterating over the lines and calculating the index. This process is reversed in the case of remote insertions/deletions.
 
@@ -566,11 +630,11 @@ If we built our CRDT to match the layout of our editor, we could get rid of that
 {: .center}
 ![crdt_table](/blogImgs/crdt_table.png)
 
-Search went from **O(log N)** — N being all the characters in the document — to O(log L + log C) — L being the total number of lines and C being the number of characters in that line.
+Search went from **O(log N)** — N being all the characters in the document — to **O(log L + log C)** — L being the total number of lines and C being the number of characters in that line.
 
-We were able to do this by using two binary searches. One to find the correct line and the other to find the character in that line.
+We were able to do this by using two binary searches - one to find the correct line and the other to find the character in that line.
 
-In the case of inserting and deleting, the worst time complexity for linear arrays is **O(N)** due to shifting, but it’s only O(C) for two-dimensional arrays because only the characters in that line need to shifted.
+In the case of inserting and deleting, the worst time complexity for linear arrays is **O(N)** due to shifting, but it’s only **O(C)** for two-dimensional arrays because only the characters in that line need to shifted.
 
 Finally, we were able to reduce the Find Index complexity from **O(N)** to **O(1)** because we can pass the position object that CodeMirror returns directly to the CRDT without any need of linearization or conversion.
 
@@ -584,7 +648,7 @@ Where it took our original CRDT upwards of 14 seconds to complete about 100 thou
 We were pretty happy with that.
 
 ---
-### 3. Peer-To-Peer Connection Management
+#### Peer-To-Peer Connection Management
 
 The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
@@ -606,11 +670,11 @@ But what if Peer 1 leaves?
 {: .center}
 ![network_cut](/blogImgs/network_cut.png)
 
-Now Peer 2 and Peer 3 are stranded and can no longer collaborate. The collaboration is essentially over.
+Now Peer 2 and Peer 3 are stranded and they can no longer collaborate.
 
 In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
 
-#### Network List and Peer Discovery
+##### Network List and Peer Discovery
 
 The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
 
@@ -622,9 +686,9 @@ This allows each user to know of all the other users, even if they’re not dire
 {: .center}
 ![peer_found](/blogImgs/peer_found.png)
 
-Is it possible to avoid a single point of failure in the first place? After all, that was the purpose of creating a peer-to-peer network in the first place.
+Is it possible to avoid a single point of failure in the first place? After all, that was part of the purpose of creating a peer-to-peer network.
 
-#### Load Balancing
+##### Load Balancing
 
 Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
 
@@ -667,26 +731,26 @@ However, through testing and trial-and-error, we discovered that a logarithmic s
   }
 ```
 
-Load balancing is not an perfect solution. While it does remove a single point of failure, it doesn't not remove bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
+Load balancing is not a perfect solution. While it does remove a single point of failure, it doesn't prevent bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
 
 ---
 ### Future Plans
 
 This is an ongoing project and the Conclave Team has several plans in store.
 
-#### Better Connection Distribution
+**Better Connection Distribution**
 
-The first being to further improve connection distribution for users in the network. A possible we are entertaining is have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drop and force them to find a new peer.
+The first thing to further improve would be the connection distribution for users in the network. A possibility we are entertaining is to have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drops and forces them to find a new peer.
 
-#### Mass insertions and deletions
+**Mass insertions and deletions**
 
-Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of larges cuts and pastes.
+Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of large cuts and pastes (as well as uploads).
 
-#### Automatic testing for P2P network
+**Automatic testing for P2P network**
 
 Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
 
-#### Atom plug-in and embeddable browser editor.
+**Atom plug-in and embeddable browser editor**
 
 {: .center}
 ![teletype](/blogImgs/teletype.png)
