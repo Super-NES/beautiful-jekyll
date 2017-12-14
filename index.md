@@ -389,8 +389,6 @@ One question we are often asked is *Is WebRTC secure and encrypted?* The answer 
   </figcaption>
 </figure>
 
-WebRTC uses the **UDP** transport protocol. UDP is a lightweight message protocol that allows it to send messages quickly and without waiting for a response from the other user.
-
 According to [WebRTC Security](http://webrtc-security.github.io/):
 
 > Encryption is a mandatory feature of WebRTC, and is enforced on all components, including signaling mechanisms. Resultantly, all media streams sent over WebRTC are securely encrypted, enacted through standardised and well-known encryption protocols. The encryption protocol used depends on the channel type; data streams are encrypted using Datagram Transport Layer Security (DTLS) and media streams are encrypted using Secure Real-time Transport Protocol (SRTP).
@@ -399,6 +397,8 @@ We can safely say that all of the data that is transferred through Conclave is s
 
 ---
 ## Version Vector
+
+WebRTC uses the **UDP** transport protocol. UDP is a lightweight message protocol that allows it to send messages quickly and without waiting for a response from the other user.
 
 One drawback to UDP is that it does not guarantee in-order packet delivery. That means that our messages may be received in a different order than they were sent. This presents a potential issue. What if a user receives a message to delete a particular character before it's actually inserted that  character?
 
