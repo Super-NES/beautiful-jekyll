@@ -16,12 +16,12 @@ Conclave is a real-time, peer-to-peer, collaborative text editor built by softwa
 {:toc}
 
 ---
-### Introduction
+## Introduction
 
 Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
 
 ---
-### What is a text editor?
+## What is a text editor?
 
 Let's quickly review what we mean by text editor. A text editor allows you to insert or delete characters and then save the resulting text to a file. Each character has a value and a integer index that determines its position within the document. For example, with the text "HAT", the character value "H" has position 0, "A" has position 1, and "T" has position 2.
 
@@ -41,7 +41,7 @@ We first thought of using an HTML textarea as our text editor but soon realized 
 We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
 
 ---
-### What is a collaborative text editor?
+## What is a collaborative text editor?
 
 Let's say we have two users in two different locations who want to edit a document at the same time. To provide the feeling of a "real-time collaborative" experience, both users should be able to edit the document at any time (i.e. no locking) and all changes made by a user should be immediately available for them to see on their screen.
 
@@ -85,7 +85,7 @@ As demonstrated in the two examples above, our solution must satisfy the two mat
 How can we solve this challenge?
 
 ---
-### Operational Transformation (OT)
+## Operational Transformation (OT)
 
 One possible solution we found is called Operational Transformation (OT). OT is an algorithm that compares concurrent operations and detects if they will cause the document state to diverge. It then modifies the operations so that they will merge together. We will represent OT as a "black box" for now.
 
@@ -109,7 +109,7 @@ Operational Transformation was the first popular way to allow for collaborative 
 > Joseph Gentle (Google Wave / ShareJS Engineer)
 
 ---
-### Conflict-Free Replicated Data Type (CRDT)
+## Conflict-Free Replicated Data Type (CRDT)
 
 An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) was discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
 
@@ -168,7 +168,7 @@ Another way to imagine fractional indices is as a tree. As characters are insert
 </figure>
 
 ---
-### Coding a CRDT
+## Coding a CRDT
 
 Talking about CRDTs in theory is well enough, but how does someone go about coding it? It's actually simpler than you might think.
 
@@ -195,7 +195,7 @@ A CRDT must handle 4 basic operations:
 * Remote Insert
 * Remote Delete
 
-#### Local Operations
+### Local Operations
 
 Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
 
@@ -261,7 +261,7 @@ Luckily, deleting a character from the CRDT is not as complicated as inserting o
   }
 ```
 
-#### Remote Operations
+### Remote Operations
 
 Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
 
@@ -292,7 +292,7 @@ Eventual consistency was achieved. **HUZZAH!**
 However, that wasn't the end of it. While building a CRDT and a simple central server relay were already rather challenging, we wondered how we could make our application even better.
 
 ---
-### What are the limitations of using a central server?
+## What are the limitations of using a central server?
 
 The current system architecture relies on the client-server model of communication. It supports multiple users editing a shared document, and between all of our users lies a central server that acts as a relay by forwarding operations to every user in the network of that shared document.
 
@@ -327,7 +327,7 @@ The third limitation is that the client-server model requires that users trust t
 And finally, reliance on a central server creates a single point-of-failure. If the server were to go down, all users will immediately lose their ability to collaborate with each other.
 
 ---
-### Peer-to-Peer Architecture
+## Peer-to-Peer Architecture
 
 We can remove these limitations by switching to a peer-to-peer architecture where users send operations directly to each other. In a peer-to-peer system, rather than having one server and many clients, each user (or peer) can act as both a client and a server. This means that instead of relying on a server to relay operations, we can have our users perform that work for free (at least in terms of money). In other words, our users will be responsible for relaying operations to other users they're connected to.
 
@@ -341,7 +341,7 @@ We can remove these limitations by switching to a peer-to-peer architecture wher
 </figure>
 
 ---
-### How will users send messages directly to each other?
+## How will users send messages directly to each other?
 
 To allow nodes to send and receive messages, we used a technology called **WebRTC**. WebRTC is a protocol that was designed for real-time communication over peer-to-peer connections. It's primarily intended to support plugin-free audio or video calling but its simplicity makes it perfect for us even though we're really just sending text messages.
 
@@ -376,7 +376,7 @@ Since most internet users use wireless routers, the public IP address is found u
 </figure>
 
 ---
-### Is WebRTC Secure?
+## Is WebRTC Secure?
 
 One question we are often asked is *Is WebRTC secure and encrypted?* The answer is a resounding **YES**.
 
@@ -398,7 +398,7 @@ According to [WebRTC Security](http://webrtc-security.github.io/):
 We can safely say that all of the data that is transferred through Conclave is secure and protected from malicious man-in-the-middle attacks.
 
 ---
-### Version Vector
+## Version Vector
 
 One drawback to UDP is that it does not guarantee in-order packet delivery. That means that our messages may be received in a different order than they were sent. This presents a potential issue. What if a user receives a message to delete a particular character before it's actually inserted that  character?
 
@@ -485,7 +485,7 @@ At this point, we've described the major components of our system architecture. 
 </figure>
 
 ---
-### Optimizations
+## Optimizations
 
 As our team continued to use Conclave, we noticed many aspects of the user experience that needed to be improved. These areas of improvement can be broken down into three categories:
 
@@ -494,11 +494,11 @@ As our team continued to use Conclave, we noticed many aspects of the user exper
 3. Peer-To-Peer Connection management
 
 ---
-#### Editor Features
+### Editor Features
 
 Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
 
-##### Remote Cursors
+#### Remote Cursors
 
 Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
@@ -540,7 +540,7 @@ To address the consistency issue, we ended up creating a simple modulo hashing a
   }
 ```
 
-##### Video Chat
+#### Video Chat
 
 Since we were already using WebRTC for our data communication, we realized it would be relatively easy to add video chat capabilities to our site. It's often easier to communicate verbally and sometimes it's just nice to see a face.
 
@@ -569,7 +569,7 @@ Users can click on any animal name in their list of peers to place a call reques
 
 In order for WebRTC to detect the media devices (camera and speaker) of any computer trying to join a video call, the initial signaling must be conducted over HTTPS. This prompted us to switch our server configuration to support HTTPS, which was obviously a really good change.
 
-##### Download and Upload
+#### Download and Upload
 
 Since there is no server to store documents, we realized we needed to provide a way for users to save what they are working on to use elsewhere at another time. Creating download functionality was simple enough. Any user can download the current contents of the editor to their computers under a timestamped filename.
 
@@ -609,7 +609,7 @@ On the other hand, what if someone wants to continue editing a file they downloa
 We used javaScript's built-in FileReader to read the contents of the file selected for upload. The text is inserted into the user's CRDT and then the editor view is replaced entirely by the data in the CRDT. Updating the editor is fast but insertion into the data structure happens one character at a time, so large documents take quite a while. This is an area for future improvement.
 
 ---
-#### CRDT Structure
+### CRDT Structure
 
 As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
@@ -648,7 +648,7 @@ Where it took our original CRDT upwards of 14 seconds to complete about 100 thou
 We were pretty happy with that.
 
 ---
-#### Peer-To-Peer Connection Management
+### Peer-To-Peer Connection Management
 
 The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
@@ -674,7 +674,7 @@ Now Peer 2 and Peer 3 are stranded and they can no longer collaborate.
 
 In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
 
-##### Network List and Peer Discovery
+#### Network List and Peer Discovery
 
 The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
 
@@ -688,7 +688,7 @@ This allows each user to know of all the other users, even if they’re not dire
 
 Is it possible to avoid a single point of failure in the first place? After all, that was part of the purpose of creating a peer-to-peer network.
 
-##### Load Balancing
+#### Load Balancing
 
 Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
 
@@ -734,7 +734,7 @@ However, through testing and trial-and-error, we discovered that a logarithmic s
 Load balancing is not a perfect solution. While it does remove a single point of failure, it doesn't prevent bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
 
 ---
-### Future Plans
+## Future Plans
 
 This is an ongoing project and the Conclave Team has several plans in store.
 
@@ -758,7 +758,7 @@ Testing the peer-to-peer nature of Conclave is difficult. The majority of our bu
 Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own Atom plugin, or at least an embeddable collaborative editor for the browser. It would not be too difficult to pull off. Keep an eye out for that!
 
 ---
-### Conclusion
+## Conclusion
 
 We hope you enjoyed reading about our journey as much as we enjoyed the journey itself!
 
