@@ -799,3 +799,10 @@ td.gutter {
 .gist, .gist-file table tr td {
   border: unset;
 }
+
+
+@media (min-width: 768px) {
+  .navbar-toggle {
+    display: none;
+  }
+}

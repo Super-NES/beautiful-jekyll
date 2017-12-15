@@ -5,9 +5,7 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-Conclave is a real-time, peer-to-peer, collaborative text editor built by software engineers [Elise Olivares](https://elisejane.github.io/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/).
-
-[Click here](https://conclave-app.herokuapp.com/)  to start using Conclave right now!
+Conclave was built by software engineers [Elise Olivares](https://elisejane.github.io/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/). [Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
 
 ---
 <h2> Table of Contents </h2>
@@ -18,51 +16,60 @@ Conclave is a real-time, peer-to-peer, collaborative text editor built by softwa
 ---
 ## Introduction
 
-Intrigued by collaborative text editors, like Google Docs, we set out to build our own from scratch. This document walks you through the journey we traveled. From our initial idea, through our research of current academic literature, to our design and implementation of the final product.
+Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of the current academic literature and finally to our design and implementation of the final product.
 
 ---
 ## What is a text editor?
 
-Let's quickly review what we mean by text editor. A text editor allows you to insert or delete characters and then save the resulting text to a file. Each character has a value and a integer index that determines its position within the document. For example, with the text "HAT", the character value "H" has position 0, "A" has position 1, and "T" has position 2.
+First, let's start by reviewing what we mean by text editor. A text editor is a space where you can **insert** or **delete** text characters and then save the resulting text to a file. Each character has a value and a numerical index that determines its position in the document. For example, with the text "HAT", the first character has a value "H" and a position of 0, "A" has position 1, and "T" has position 2.
 
-A character can be inserted or deleted from the text simply by referencing a positional index. To insert a "C" at the beginning of the text, you perform the operation `insert("C", 0)`. To delete the "H", you perform the operation `delete(1)`. Note that depending on where a character is inserted or deleted, preceding or succeeding characters must update their positional indices.
+A character can be inserted or deleted from the text simply by referencing a positional index. To insert a "C" at the beginning of the text, the operation is `insert("C", 0)`. This insertion results in the remaining positions being shifted (or incremented) by 1. Now to delete the "H", the operation is `delete(1)`.
 
 <figure>
   <center>
     <img src="blogImgs/one.png" alt="positional indices" />
   </center>
   <figcaption>
-    <small><strong>Local positional indices change as you type.</strong></small>
+    <small><strong>The character positions may shift as surrounding characters are inserted or deleted.</strong></small>
   </figcaption>
 </figure>
 
-We first thought of using an HTML textarea as our text editor but soon realized that a simple textarea is not able to detect the index at which a letter is inserted or deleted. A specialized editor was needed.
-
-We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
-
 ---
-## What is a collaborative text editor?
+## What is a real-time collaborative text editor?
 
-Let's say we have two users in two different locations who want to edit a document at the same time. To provide the feeling of a "real-time collaborative" experience, both users should be able to edit the document at any time (i.e. no locking) and all changes made by a user should be immediately available for them to see on their screen.
+One user editing a document seems simple, but what if we want multiple users simultaneously editing the same document? How would that work?
 
-To provide this experience, we'll need to create a replica of the shared document at each user's location. When a user changes their document, the change should be immediately applied locally and then broadcasted to the other user.
+First, we'll need to provide each user with a local copy of document and allow them to make edits. Remember, we're aiming for "real-time"; we want users to be able to apply their edits immediately as if they were using a simple text editor.
 
-Given these requirements, can we apply changes to our collaborative editor in the same manner as our single user text editor?
+**Note:** An example of a non-real-time collaborative editor is a version control system like **Git**.
 
-Let's try to insert "C" and delete "H" as we did in the previous example. This time, however, we'll have two different users apply one of the operations first and then apply the other operation received from the other user.
+Next, we need a way for users to inform other users of edits they made to the document. We'll introduce a **Central Relay Server** to facilitate this communication.
+
+<figure>
+  <center>
+    <img src="blogImgs/seven.png" alt="client-server" />
+  </center>
+  <figcaption>
+    <small><strong>Two users connected through a central relay server.</strong></small>
+  </figcaption>
+</figure>
+
+Now let's try inserting a "C" and deleting the "H" as we did with our simple text editor. This time, however, we'll have one user perform the insertion and the other user perform the deletion. After performing their respective operations, each user will send a message to the other user informing them about the operation.
 
 <figure>
   <center>
     <img src="blogImgs/two.png" alt="insert delete same time" />
   </center>
   <figcaption>
-    <small><strong>Insertion and deletion operations do not commute.</strong></small>
+    <small><strong>Simultaneous insertion and deletion produce different results.</strong></small>
   </figcaption>
 </figure>
 
-Oh no! Each user's document looks different. This demonstrates that changing the order of operations produces different results. In mathematical terms, the operations do not commute (insert + delete !== delete + insert).
+Oh no! One user has a "HAT" and the other user has a "CAT". In this particular example, their documents did not **converge** to the same state. This example demonstrates one of the primary challenges with building a collaborative text editor: getting all users' documents to converge to the same state.
 
-This time, let's say both users want to delete the "H" from "CHAT".
+The reason that the users' document didn't converge is because the insert and delete operations were applied in different orders. In mathematical terms, the operations did not **commute**. For non-mathematicians like ourselves, let's review what commutativity means. Commutativity occurs when operations applied in different orders produce the same result. For example, addition is commutative because A + B = B + A. Subtraction, however, is not commutative because A - B != B - A.
+
+Let's try another example where the users simultaneously decide they want to delete the "H" from "CHAT" to get a "CAT".
 
 <figure>
   <center>
@@ -73,23 +80,23 @@ This time, let's say both users want to delete the "H" from "CHAT".
   </figcaption>
 </figure>
 
-Looks like that doesn't work either! While each user's document looks the same, they both ended up with "AT" instead of "CAT". This demonstrates that repeating the same operation multiple times produces different results. In mathematical terms, the delete operations are not idempotent.
+The documents **did converge** but we have another problem! Both users ended up with an "AT" instead of a "CAT", which neither of them wanted. In mathematical terms, the delete operations are not **idempotent**. What the heck does that mean? Idempotency occurs when repeated operations produce the same result. For example, multiplying by 1 is an idempotent operation. No matter how many times you multiply a number by 1, the result is the same.
 
-It appears that we can't collaborate using indices like with a single user text editor. Since there are multiple users making changes to the same shared document, there is the possibility for changes to be made concurrently (or at the same time). Dealing with these conflicts so that each user sees a consistent and intentional result is the primary challenge of a collaborative text editor.
+With our text editor use case, if both users try to insert the same letter in the same position at the same time, it's acceptable for the result to be two duplicate characters because it's easy to find and delete the unnecessary character. When it comes to deletes, however, the character is simply gone without a record of it ever existing; a user would have to remember the value and position of the character in order to insert it back in the document.
 
-As demonstrated in the two examples above, our solution must satisfy the two mathematical properties of commutativity and idempotency.
+Through these examples, we've seen that a collaborative text editor is different than a simple text editor. Further, we've concluded that when users make concurrent edits to a shared document, the insert and delete operations must commute and the delete operations must be idempotent.
 
-- **Commutativity**: Multiple operations converge to the same result regardless of the order in which they are applied.
-- **Idempotency**: Repeated operations produce the same result.
+- **Commutativity**: Concurrent insert and delete operations converge to the same result regardless of the order in which they are applied.
+- **Idempotency**: Repeated delete operations produce the same result.
 
-How can we solve this challenge?
+How can we solve this challenge and build our real-time collaborative text editor?
 
 ---
 ## Operational Transformation (OT)
 
-One possible solution we found is called Operational Transformation (OT). OT is an algorithm that compares concurrent operations and detects if they will cause the document state to diverge. It then modifies the operations so that they will merge together. We will represent OT as a "black box" for now.
+One possible solution we found is called **Operational Transformation (OT)**. OT is an algorithm that compares concurrent operations and detects if they will cause the documents to not converge. If the answer is yes, the operations are modified (or transformed) before being applied. Let's see this in action.
 
-Returning to an earlier example, when User1 receives the `delete(0)` operation from User2, OT realizes that since User1 inserted a new character at position 0, User2's operation must be transformed to `delete(1)` before being applied.
+Returning to an earlier example, when User1 receives the `delete(0)` operation from User2, OT realizes that since User1 inserted a new character at position 0, User2's operation must be transformed to `delete(1)` before being applied by User1.
 
 <figure>
   <center>
@@ -100,9 +107,9 @@ Returning to an earlier example, when User1 receives the `delete(0)` operation f
   </figcaption>
 </figure>
 
-Without showing our other example, we can imagine that when a user tries to delete a character that's already been deleted, OT recognizes this and skips the operation. In basic terms, OT provides a strategy to achieve commutativity and idempotency.
+Without showing our other example, we can imagine that when a user tries to delete a character that's already been deleted, OT can easily recognize this and skip the operation. OT solves our challenge by providing a strategy for achieving the commutativity and idempotency we need.
 
-Operational Transformation was the first popular way to allow for collaborative editing. The first collaborative editors, Google Wave, Etherpad, and Firepad, all relied on OT to work. Unfortunately, the verdict is that it's tough to implement.
+OT was the first popular way to allow for collaborative editing. The first collaborative editors, Google Wave, Etherpad, and Firepad, all used OT. Unfortunately, the verdict from those products is that it's extremely tough to actually implement.
 
 > “Unfortunately, implementing OT sucks. There's a million algorithms with different tradeoffs, mostly trapped in academic papers. The algorithms are really hard and time consuming to implement correctly. […] Wave took 2 years to write and if we rewrote it today, it would take almost as long to write a second time.”
 
@@ -111,13 +118,19 @@ Operational Transformation was the first popular way to allow for collaborative 
 ---
 ## Conflict-Free Replicated Data Type (CRDT)
 
-An alternative strategy called Conflict-Free Replicated Data Types (CRDTs) was discovered by academic researchers while trying to strengthen and simplify OT. While OT treats the text as a list of characters and relies on a complex algorithm to merge conflicts, the CRDT takes a different approach. It relies on a more complex data structure but with a much simpler algorithm.
+An alternative strategy that was named **Conflict-Free Replicated Data Types (CRDT)** was discovered by researchers while trying to strengthen and simplify OT.
 
-The major difference with CRDTs is with how they create and store their characters. With one user typing in a text editor, each character requires only a value and a whole number positional index. In collaborative editing, we've seen that this simple requirement creates a couple problems with convergence and intention preservation.
+Like a basic text editor, OT treats each character as having a value and an absolute position and relies purely on an algorithm to achieve commutativity and idempotency. CRDTs take a different approach. With the CRDT strategy, researchers realized that there's no reason to treat the characters as just having a value and absolute position.
 
-Therefore, a CRDT adds the requirement that each character be globally unique. This is achieved by assigning a **Site ID** and **Operation Counter** properties to each character upon creation. Since the **Operation Counter** value increments every time it creates (or deletes) a character, we have ensured that every character object created in the system is globally unique.
+Instead, you add properties to the character object that allow for the  commutativity and idempotency required by a collaborative text editor. By using a more complex data structure, CRDTs allow for a much simpler algorithm than OT. To use CRDTs for a collaborative text editor, there are a couple critical requirements.
 
-With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our example.
+**Note:** There are lots of different examples of CRDTs with different requirements for different use cases. In this context, a CRDT is primarily a strategy for achieving consistent data without any kind of coordination (e.g. transformation) between replicas of that data. Since a text document requires the characters to be in a specific order, this type of CRDT can be called an ordered set CRDT.
+
+### Globally Unique Characters
+
+The 1st requirement is that each character object be globally unique. This is achieved by assigning **Site ID** and **Site Counter** properties when inserting a character. Since the **Site Counter** at each site increments every time it inserts or deletes a character, we've ensured global uniqueness of all characters.
+
+With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our earlier example.
 
 <figure>
   <center>
@@ -128,22 +141,28 @@ With globally unique characters, when a user sends a message to another user to 
   </figcaption>
 </figure>
 
-The 2nd requirement of CRDTs is that each character created contains a position that is relative to the characters around it. This relative position never changes and can always be used to find the character's position in the document.
+By ensuring globally unique character objects, we've achieved idempotency of delete operations in our collaborative text editor.
 
-In the "CAT" example, when user inserts "H" at position 1, they are actually trying to convey that they intend to insert an "H" in between (or relative to) "C" and "A".
+### Globally Ordered Character Positions
+
+The 2nd requirement is that character positions are ordered and globally consistent. That means that when a user inserts a character, it will be placed in the same position (relative to other characters) on every user's local copy of the document.
+
+In our first text editor example, we noted that when inserting or deleting a character, the position indices of surrounding characters must sometimes be shifted accordingly. This shifting requirements leads to the problem where insert and delete operations do not commute. This problem can be avoided by using **fractional indices** (as opposed to numerical indices).
+
+In the example below, when a user inserts "H" at position 1, they're actually intending to insert an "H" in between "C" and "A".
 
 <figure>
   <center>
-    <img src="blogImgs/id_alloc.png" alt="fractional indices" />
+    <img src="blogImgs/id_alloc.png" alt="insert between" />
   </center>
   <figcaption>
-    <small><strong>Positions are generated relative to the characters around it.</strong></small>
+    <small><strong>Inserting a character in between two existing characters.</strong></small>
   </figcaption>
 </figure>
 
-CRDTs accomplish this by employing fractional indices. Instead of inserting the “H” at position 1, it’s inserted at position 0.5. No matter what happens to the surrounding characters, “H” will be created in a place that matches the user’s intention.
+Instead of inserting the “H” at position 1 (and forcing the succeeding characters to shift their position indices), "H" is inserted at position 0.5.
 
-To represent fractional indices in code, we used a list of integers, otherwise known as position identifiers. We can use this list of position identifiers to locate the correct position that a character should be inserted into the document.
+To represent fractional indices in code, we used a list of integers, otherwise known as **position identifiers**. We can use this list of position identifiers to locate the correct position that a character should be inserted into the document.
 
 <figure>
   <center>
@@ -194,6 +213,12 @@ A CRDT must handle 4 basic operations:
 * Local Delete
 * Remote Insert
 * Remote Delete
+
+### Web Text Editor
+
+We first thought of using an HTML textarea as our text editor but soon realized that a simple textarea is not able to detect the index at which a letter is inserted or deleted. A specialized editor was needed.
+
+We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
 
 ### Local Operations
 
@@ -428,7 +453,7 @@ What happens if the delete operation arrives at Peer3 before the insert operatio
 
 To solve the out-of-order messages problem, we built what's called a **Version Vector**. It sounds fancy but it's simply a strategy that tracks which operations we've received from each user.
 
-Whenever an operation is sent out, in addition to the character object and whether it's an insertion or deletion, we also include the character's **Site ID** and **Operation Counter** value. The SiteID indicates who originally sent the operation, and the Counter indicates which operation number it is from that particular user.
+Whenever an operation is sent out, in addition to the character object and whether it's an insertion or deletion, we also include the character's **Site ID** and **Site Counter** value. The SiteID indicates who originally sent the operation, and the Counter indicates which operation number it is from that particular user.
 
 When a peer receives a delete operation, it's immediately placed in a **Deletion Buffer**. If it were an insert, we could just apply it immediately. But with deletes, we have to make sure the character has been inserted first.
 
