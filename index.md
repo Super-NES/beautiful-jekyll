@@ -65,7 +65,7 @@ Now let's try inserting a "C" and deleting the "H" as we did with our simple tex
   </figcaption>
 </figure>
 
-Oh no! One user has a "HAT" and the other user has a "CAT". In this particular example, their documents did not **converge** to the same state. This example demonstrates one of the primary challenges with building a collaborative text editor: getting all users' documents to converge to the same state.
+Oh no! One user has a "HAT" and the other user has a "CAT". In this particular example, their documents did not **converge** to the same state. This example demonstrates one of the primary challenges with building a collaborative text editor — getting all users to converge to the same document state.
 
 The reason that the users' document didn't converge is because the insert and delete operations were applied in different orders. In mathematical terms, the operations did not **commute**. For non-mathematicians like ourselves, let's review what commutativity means. Commutativity occurs when operations applied in different orders produce the same result. For example, addition is commutative because A + B = B + A. Subtraction, however, is not commutative because A - B != B - A.
 
@@ -143,13 +143,13 @@ With globally unique characters, when a user sends a message to another user to 
 
 By ensuring globally unique character objects, we've achieved idempotency of delete operations in our collaborative text editor.
 
-### Globally Ordered Character Positions
+### Globally Ordered Characters
 
-The 2nd requirement is that character positions are ordered and globally consistent. That means that when a user inserts a character, it will be placed in the same position (relative to other characters) on every user's local copy of the document.
+The 2nd requirement has to do with character positioning. Since we're building a text editor, we already know that the characters must be ordered within a document. But in addition to that, we need the characters to be globally ordered and consistent. That means that when a user inserts a character, it will be placed in the same position (relative to other characters) on every user's document.
 
-In our first text editor example, we noted that when inserting or deleting a character, the position indices of surrounding characters must sometimes be shifted accordingly. This shifting requirements leads to the problem where insert and delete operations do not commute. This problem can be avoided by using **fractional indices** (as opposed to numerical indices).
+In our initial text editor example, we noted that when inserting or deleting a character, the positions of surrounding characters would sometimes need to be shifted accordingly. Since characters can be shifted by a user without the other users' knowledge, we can end up in a situation where insert and delete operations do not commute.
 
-In the example below, when a user inserts "H" at position 1, they're actually intending to insert an "H" in between "C" and "A".
+We can avoid this problem and ensure commutativity by using **fractional indices** as opposed to numerical indices. In the example below, when a user insert an "H" at position 1, they more specifically intend to insert an "H" in between "C" and "A".
 
 <figure>
   <center>
@@ -160,22 +160,20 @@ In the example below, when a user inserts "H" at position 1, they're actually in
   </figcaption>
 </figure>
 
-Instead of inserting the “H” at position 1 (and forcing the succeeding characters to shift their position indices), "H" is inserted at position 0.5.
-
-To represent fractional indices in code, we used a list of integers, otherwise known as **position identifiers**. We can use this list of position identifiers to locate the correct position that a character should be inserted into the document.
+Instead of inserting the “H” at position 1 (and forcing the succeeding characters to shift/increment their position indices), we insert the "H" at a position between 0 and 1 (e.g. 0.5). We represent fractional indices in code as a list of integers (or **position identifiers**). For example, `O.5` is represented as `[0, 5]`.
 
 <figure>
   <center>
     <img src="blogImgs/six.png" alt="fractional indices" />
   </center>
   <figcaption>
-    <small><strong>Indices are relative and fractional instead of absolute integers.</strong></small>
+    <small><strong>Inserting a character at a position in between two existing characters.</strong></small>
   </figcaption>
 </figure>
 
-Even though User2 simultaneously deletes "A" at position 1, "H" is still be placed after the "C". The user's intention is preserved and the documents converge to the same result. By using fractional indices, CRDTs improve the commutativity. The order of operations doesn't matter anymore.
+Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they can be inserted in between two existing position identifiers at one level of the tree. However, if there is no space between two existing character positions, as demonstrated below, we proceed to the next level of the tree and pick an available position value from there.
 
-Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they are given available position IDs from the first level of the tree. However, if we try to create a position between two adjacent characters, we need to go to the next level of the tree and pick an available position from that level.
+**Note:** There are several academic papers dedicated to how best to "pick an available position". We implemented an "adaptive allocation strategy for sequence CRDT" called [LSEQ](https://hal.archives-ouvertes.fr/hal-00921633/document).
 
 <figure>
   <center>
@@ -186,8 +184,23 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
+With globally ordered characters using position identifiers, let's revisit our example of simultaneous insertions and deletions.
+
+<figure>
+  <center>
+    <img src="blogImgs/insert-delete-commute.png" alt="insert delete commute crdt" />
+  </center>
+  <figcaption>
+    <small><strong>Insert and Delete operations commute using a CRDT.</strong></small>
+  </figcaption>
+</figure>
+
+When inserting or deleting characters in our CRDT, we do so using globally unique characters. Therefore, the deletion of a particular character has absolutely no effect on the insertion of a new character. In other words, our insertion and deletion operations now commute!
+
+If you're paying attention, you'll be wondering what happens if two users insert the same character in the same position at the same time. To ensure that these characters are still globally unique, we attach the **Site ID** to the end of character's position identifier, and that Site ID is used as a tiebreaker in the event that multiple users inserted the same character in the same position.
+
 ---
-## Coding a CRDT
+## Coding the CRDT
 
 Talking about CRDTs in theory is well enough, but how does someone go about coding it? It's actually simpler than you might think.
 
@@ -317,7 +330,7 @@ Eventual consistency was achieved. **HUZZAH!**
 However, that wasn't the end of it. While building a CRDT and a simple central server relay were already rather challenging, we wondered how we could make our application even better.
 
 ---
-## What are the limitations of using a central server?
+## Limitations of a Central Relay Server
 
 The current system architecture relies on the client-server model of communication. It supports multiple users editing a shared document, and between all of our users lies a central server that acts as a relay by forwarding operations to every user in the network of that shared document.
 
@@ -509,30 +522,33 @@ At this point, we've described the major components of our system architecture. 
   </figcaption>
 </figure>
 
+
+So at this point, we now have a peer-to-peer, real-time, collaborative text editor. Our editor allows users to send and receive messages directly to and from one another, resulting in a private and secure way to collaborate on a document.
+
 ---
 ## Optimizations
 
-As our team continued to use Conclave, we noticed many aspects of the user experience that needed to be improved. These areas of improvement can be broken down into three categories:
+As our team began to use Conclave, we noticed  aspects of the user experience that could be improved. We broke these areas for improvement into three categories:
 
 1. Editor Features
 2. CRDT Structure
-3. Peer-To-Peer Connection management
+3. Peer-To-Peer Connection Management
 
 ---
 ### Editor Features
 
-Just because our collaborative editor worked did not mean it was usable. It was minimal and lacked basic features. To increase user friendliness, we switched from our typical software engineering roles to focus on the product itself. Below is a list of the features that we incorporated.
+At this point, our collaborative editor worked but it wasn't very usable. To fix this, we implemented a few critical features: remote cursors, video chat, and upload/download buttons.
 
 #### Remote Cursors
 
 Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
 
-That is the situation we ran into. Without a way to identify other person on the page, users would end up writing over each other and turning the real time collaborative experience into a headache.
+That is the situation we ran into. Without a way to identify another person on the page, users would end up writing over each other and turning the real-time collaboration experience into a headache. We solved this problem with remote cursors.
 
 {: .center}
 ![remote_cursors](/blogImgs/remote_cursors.png)
 
-Remote cursors would solve this problem. Each user would be represented by a cursor with a unique color that identifies them and their place in the document.
+Each user is represented by a cursor with a unique color/animal combination that identifies them and their cursor's current location in the document.
 
 However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent between all nodes while preventing different users from ending up with the same color?
 
@@ -637,7 +653,7 @@ We used javaScript's built-in FileReader to read the contents of the file select
 ---
 ### CRDT Structure
 
-As mentioned in the **Coding A CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+As mentioned in the **Coding the CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
 Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted into or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
 
