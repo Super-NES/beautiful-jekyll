@@ -210,15 +210,15 @@ If you're paying close attention, you might ask what happens if two users insert
 ---
 ## Coding the CRDT
 
-So how does someone go about coding a CRDT? It's simpler than you might think.
+With the theory out of the way, how does someone go about actually implementing a CRDT in code?
 
-A CRDT needs certain properties to be functional:
-* A globally unique SiteID
-* A data structure to house all the character objects.
+### Web Text Editor
 
-Since each user will have their own copy of the CRDT on their machine, each CRDT needs to be identifiable using a unique SiteID. This makes it so all insert and delete operations can be tied back to a specific user.
+First, we need an actual text editor for our user interface. We first thought of using an HTML textarea as our text editor but soon realized that a textarea element is not able to detect the position at which a letter is inserted or deleted. After some research, we settled on the open-source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
 
-Additionally, each CRDT needs to have a data structure that houses all the character objects. This can be as simple as an array or linked list or as complicated as a matrix or tree. We decided to use a simple linear array to make things easy for ourselves.
+### CRDT Structure
+
+For our CRDT data structure, we simply need a globally unique **Site ID** and a structure to hold our characters objects. To create a globally unique id, we used a [library](https://github.com/kelektiv/node-uuid) that generates UUIDs. To hold our character objects, we decided on a linear array to make things as simple as possible to start.
 
 ```javascript
   class CRDT {
@@ -229,23 +229,13 @@ Additionally, each CRDT needs to have a data structure that houses all the chara
   }
 ```
 
-A CRDT must handle 4 basic operations:
-* Local Insert
-* Local Delete
-* Remote Insert
-* Remote Delete
+Beyond that, our CRDT must handle 4 basic operations:
+* **Local Insert**: User inserts character into their local text editor and sends the operation to all other users.
+* **Local Delete**: User deletes character from their local editor and sends the operation to all other users.
+* **Remote Insert**: User receives a insert operation from another user and inserts it to their local editor.
+* **Remote Delete**: User receives a delete operation from another user and deletes it from their local editor.
 
-### Web Text Editor
-
-We first thought of using an HTML textarea as our text editor but soon realized that a simple textarea is not able to detect the index at which a letter is inserted or deleted. A specialized editor was needed.
-
-We decided to use the open source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
-
-### Local Operations
-
-Local operations are operations that a user makes themselves in their text editor. Remote operations are operations received from other users that need to be incorporated in order to stay consistent.
-
-**Local Insert**
+### Local Insert/Delete
 
 When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcast to the other users.
 
@@ -297,8 +287,6 @@ As mentioned before, relative positions can be thought of as a tree structure. W
   }
 ```
 
-**Local Delete**
-
 Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
 
 ```javascript
@@ -307,7 +295,7 @@ Luckily, deleting a character from the CRDT is not as complicated as inserting o
   }
 ```
 
-### Remote Operations
+### Remote Insert/Delete
 
 Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
 
