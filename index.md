@@ -5,7 +5,7 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-Conclave was built by software engineers [Elise Olivares](https://elisejane.github.io/), [Nitin Savant](http://www.nitinsavant.com), and [Sunny Beatteay](https://www.linkedin.com/in/sjbeatteay/). [Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
+[Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
 
 ---
 <h2> Table of Contents </h2>
