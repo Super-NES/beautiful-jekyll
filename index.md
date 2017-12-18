@@ -8,7 +8,7 @@ use-site-title: true
 [Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
 
 {: .center}
-![Conclave In Action](/imgs/conclave_in_action2.gif)
+![Conclave In Action](/img/conclave_in_action2.gif)
 
 ---
 ## Introduction
