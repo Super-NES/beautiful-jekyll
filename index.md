@@ -175,7 +175,7 @@ Using fractional indices, instead of inserting “H” at position 1, we insert 
   </figcaption>
 </figure>
 
-The key is that by using franctional indices to insert characters, we never have to shift the positions of surrounding characters.
+The key is that by using fractional indices to insert characters, we never have to shift the positions of surrounding characters.
 
 Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they can be inserted in between two existing position identifiers at one level of the tree. However, if there is no space between two existing character positions, as demonstrated below, we proceed to the next level of the tree and pick an available position value from there.
 
@@ -190,7 +190,9 @@ Another way to imagine fractional indices is as a tree. As characters are insert
   </figcaption>
 </figure>
 
-With globally ordered characters using position identifiers, let's revisit our example of simultaneous insertions and deletions.
+With globally ordered characters using position identifiers, let's revisit our example of simultaneous insert and delete operations.
+
+**Note:** For the purpose of simplifying the example, we've omitted the **Site ID** and **Site Counter** properties. The globally unique ids here are just the fractional positions. In reality, they'll be more complex objects.
 
 <figure>
   <center>
@@ -201,9 +203,9 @@ With globally ordered characters using position identifiers, let's revisit our e
   </figcaption>
 </figure>
 
-When inserting or deleting characters in our CRDT, we do so using globally unique characters. Therefore, the deletion of a particular character has absolutely no effect on the insertion of a new character. In other words, our insertion and deletion operations now commute!
+With our CRDT, we now insert globally unique characters with fractionally indexed positions. The result is that deleting a particular character has absolutely no effect on the insertion of a new character. In other words, our insertion and deletion operations now commute!
 
-If you're paying attention, you'll be wondering what happens if two users insert the same character in the same position at the same time. To ensure that these characters are still globally unique, we attach the **Site ID** to the end of character's position identifier, and that Site ID is used as a tiebreaker in the event that multiple users inserted the same character in the same position.
+If you're paying close attention, you might ask what happens if two users insert the same character in the same position at the same time. To ensure that these characters are still globally unique, we attach the **Site ID** to the end of character's position identifier, and that Site ID is used as a tiebreaker in the event that multiple users inserted the same character in the same position.
 
 ---
 ## Coding the CRDT
