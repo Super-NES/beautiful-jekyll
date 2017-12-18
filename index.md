@@ -5,15 +5,12 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-[Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
+[Conclave](https://conclave-app.herokuapp.com/) is a peer-to-peer, real-time, collaborative text editor. Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
+
+[CLICK HERE](https://conclave-app.herokuapp.com/) to start using Conclave now!
 
 {: .center}
 ![Conclave In Action](/img/conclave_in_action3.gif)
-
----
-<h2>Introduction</h2>
-
-Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of the current academic literature and finally to our design and implementation of the final product.
 
 ---
 <h2> Table of Contents </h2>
