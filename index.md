@@ -763,6 +763,7 @@ We used JavaScript's built-in FileReader to read the contents of the file select
   }
 ```
 To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users joining a collaboration session will not see the upload button.
+
 ---
 
 ## Future Plans
