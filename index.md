@@ -5,9 +5,9 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-[Conclave](https://conclave-app.herokuapp.com/) is a peer-to-peer, real-time, collaborative text editor. Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
+[Conclave](https://conclave-app.herokuapp.com/){:target="_blank"} is a peer-to-peer, real-time, collaborative text editor built from scratch in JavaScript. Intrigued by collaborative text editors such as Google Docs, we set out to build our own. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
 
-[CLICK HERE](https://conclave-app.herokuapp.com/) to start using Conclave now!
+[Click to start using Conclave now!](https://conclave-app.herokuapp.com/){:target="_blank"}
 
 {: .center}
 ![Conclave In Action](/img/conclave_in_action3.gif)
@@ -179,7 +179,7 @@ The key is that by using fractional indices to insert characters, we never have 
 
 Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they can be inserted in between two existing position identifiers at one level of the tree. However, if there is no space between two existing character positions, as demonstrated below, we proceed to the next level of the tree and pick an available position value from there.
 
-**Note:** There are several academic papers dedicated to how best to "pick an available position". We implemented an "adaptive allocation strategy for sequence CRDT" called [LSEQ](https://hal.archives-ouvertes.fr/hal-00921633/document).
+**Note:** There are several academic papers dedicated to how best to "pick an available position". We implemented an "adaptive allocation strategy for sequence CRDT" called [LSEQ](https://hal.archives-ouvertes.fr/hal-00921633/document){:target="_blank"}.
 
 <figure>
   <center>
@@ -214,11 +214,11 @@ With the theory out of the way, how does someone go about actually implementing 
 
 ### Web Text Editor
 
-First, we need an actual text editor for our user interface. We first thought of using an HTML textarea as our text editor but soon realized that a textarea element is not able to detect the position at which a letter is inserted or deleted. After some research, we settled on the open-source [CodeMirror](https://github.com/codemirror/CodeMirror) text editor for it's ease of use and robust API.
+First, we need an actual text editor for our user interface. We first thought of using an HTML textarea as our text editor but soon realized that a textarea element is not able to detect the position at which a letter is inserted or deleted. After some research, we settled on the open-source [CodeMirror](https://github.com/codemirror/CodeMirror){:target="_blank"} text editor for it's ease of use and robust API.
 
 ### CRDT Structure
 
-For our CRDT data structure, we simply need a globally unique **Site ID** and a structure to hold our characters objects. To create a globally unique id, we used a [library](https://github.com/kelektiv/node-uuid) that generates UUIDs. To hold our character objects, we decided on a linear array to make things as simple as possible to start.
+For our CRDT data structure, we simply need a globally unique **Site ID** and a structure to hold our characters objects. To create a globally unique id, we used a [library](https://github.com/kelektiv/node-uuid){:target="_blank"} that generates UUIDs. To hold our character objects, we decided on a linear array to make things as simple as possible to start.
 
 ```javascript
   class CRDT {
@@ -394,7 +394,7 @@ When a user first opens Conclave, the application establishes a WebSocket connec
 
 The link is unique to each user and is essentially a pointer to a particular user. A user can share their link with anyone, and upon clicking the link, the collaborator will automatically be connected to the user and able to collaborate on the shared document.
 
-To implement signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com) which took care of a lot of this stuff behind the scenes for us. For example, when a user clicks another user's sharing link, it's essentially asking the signaling server to broker a connection between them. The server responds by providing the user with the other user's IP address, allowing the user to send messages to the other user.
+To implement signaling and WebRTC messaging, we used a library called [PeerJS](http://peerjs.com){:target="_blank"} which took care of a lot of this stuff behind the scenes for us. For example, when a user clicks another user's sharing link, it's essentially asking the signaling server to broker a connection between them. The server responds by providing the user with the other user's IP address, allowing the user to send messages to the other user.
 
 Since most internet users use wireless routers, the public IP address is found using a STUN server. The connecting user then uses the IP address to establish a WebRTC connection, and once established, content can be sent directly between users. In the case that a connection with the STUN server cannot be made and the WebRTC connection fails, a TURN server is used as a backup to send operations between users.
 
@@ -782,7 +782,7 @@ Testing the p2p nature of Conclave is difficult. The majority of our bugs were f
 
 **Embeddable Browser Editor**
 
-Finally, you may have heard of the recent release of [GitHub’s Teletype](https://teletype.atom.io). We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
+Finally, you may have heard of the recent release of [GitHub’s Teletype](https://teletype.atom.io){:target="_blank"}. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
 
 ---
 ## Our Team
