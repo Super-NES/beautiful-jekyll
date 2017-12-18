@@ -237,7 +237,7 @@ Beyond that, our CRDT must handle 4 basic operations:
 
 ### Local Insert/Delete
 
-When inserting a character locally, the only information needed is the character value and the index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the newly created character object will be returned so it can be broadcast to the other users.
+When inserting a character locally, the only information needed is the character value and the editor index at which it is inserted. A new character object will then be created using that information and spliced into the CRDT array. Finally, the new character is returned so it can be sent to the other users.
 
 ```javascript
   class CRDT {
@@ -252,7 +252,7 @@ When inserting a character locally, the only information needed is the character
   }
 ```
 
-You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the relative position of the character object.
+You may wonder what is happening under the hood of the `generateChar` method. The bulk of the `generateChar` logic is determining the globally unique fractional index position of the new character. Since each new character's position is relative to its adjacent characters, the positions of these adjacent characters are used to generate the position of the new character.
 
 ```javascript
   generateChar(val, index) {
@@ -263,9 +263,7 @@ You may wonder what is happening under the hood of the `generateChar` method. Th
   }
 ```
 
-Since each character object's position is relative to the characters around it, the positions of the surrounding characters are used to generate a position for the new character.
-
-As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree to dynamically generate a position.
+As mentioned before, relative positions can be thought of as a tree structure. We took advantage of that structure to create a recursive algorithm that traverses down that tree and dynamically generates a position.
 
 ```javascript
   generatePosBetween(pos1, pos2, newPos=[]) {
@@ -287,7 +285,7 @@ As mentioned before, relative positions can be thought of as a tree structure. W
   }
 ```
 
-Luckily, deleting a character from the CRDT is not as complicated as inserting one. All that is needed is the index of the character. That index is used to splice out the character object and return it.
+Deleting a character from the CRDT is much simpler. All that is needed is the index of the character. That index is used to splice out the character object from our linear array and return it.
 
 ```javascript
   localDelete(idx) {
@@ -297,11 +295,11 @@ Luckily, deleting a character from the CRDT is not as complicated as inserting o
 
 ### Remote Insert/Delete
 
-Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another collaborator, it's up to their CRDT to find where to insert it.
+Remote operations are where each character object's relative position comes in handy. When a user receives an operation from another user, it's up to their CRDT to figure out where to insert it.
 
-To make this as efficient as possible, a binary search algorithm was implemented. The algorithm uses the character's relative position to find it's index in the array. Or, in the case of remote inserts, the binary search is used to find where it should be inserted.
+To make this as efficient as possible, we implemented a binary search algorithm. When applying a remote delete, the binary search uses the character's relative position to find it's index in the array. In the case of remote inserts, the binary search is used to find where it should be inserted in the array.
 
-If it is a remote insertion, the character value and index are returned in order to insert the letter into the editor. For remote deletions, only the index is returned.
+The return values are passed along to our Editor where the operations are applied in our user's local CodeMirror text editor.
 
 ```javascript
   remoteInsert(char) {
@@ -319,11 +317,11 @@ If it is a remote insertion, the character value and index are returned in order
   }
 ```
 
-With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to the rest of the users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTs.
+With a CRDT in place, our team was able to begin collaborating with one another. Our local operations would get sent to our relay server, which would then broadcast them out to all the other users. Those users would incorporate the changes and any conflicts would be seamlessly resolved due to the commutative and idempotent nature of CRDTs.
 
 Eventual consistency was achieved. **HUZZAH!**
 
-However, that wasn't the end of it. While building a CRDT and a simple central server relay were already rather challenging, we wondered how we could make our application even better.
+However, that wasn't the end of it. While building a CRDT and a simple central relay server were already rather challenging, we wondered how we could make the application even better.
 
 ---
 ## Limitations of a Central Relay Server
@@ -533,89 +531,83 @@ As our team began to use Conclave, we noticed  aspects of the user experience th
 ---
 ### CRDT Structure
 
-https://conclave-team.github.io/conclave-site/#coding-a-crdt
+As mentioned in [Coding the CRDT](https://conclave-team.github.io/conclave-site/#coding-a-crdt), we initially structured our CRDT as a linear array of characters. This works well for small documents but becomes inefficient as the number of characters in a document grows. This is primarily due to shifting of the array that's required when splicing characters into and out of a linear array.
 
-As mentioned in [Coding the CRDT)(https://conclave-team.github.io/conclave-site/#coding-a-crdt), we initially structured our CRDT as a linear array of characters. This works well for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character was inserted into or deleted from the editor, CodeMirror returns a position object that indicates the line and character (i.e. row and column) on which that change was made in the editor.
 
-Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted into or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
-
-In order to use this object in our CRDT, it needs to be converted into a linear index. This involves retrieving the document, splitting it by new line characters, iterating over the lines and calculating the index. This process is reversed in the case of remote insertions/deletions.
+To use this position object in our linear array CRDT, it needed to be converted into a linear index. This involved retrieving the entire document, splitting it by newline characters, iterating over the lines, and calculating the overall index. The inverse of this process was performed in the case of remote insertions and deletions.
 
 {: .center}
 ![editor_position](/blogImgs/editor_position.png)
 
-That is a lot of overhead to find a simple index. This lead us to wonder what data structure would be more efficient for our CRDT. That’s when we realized the CodeMirror editor itself is structured as a two-dimensional array.
+That is a lot of overhead to find a simple index. This led us to wonder how we could structure our CRDT to be more efficient. That’s when we realized the CodeMirror editor itself is structured as a two-dimensional array.
 
 {: .center}
 ![two_dimen_array](/blogImgs/two_dimen_array.png)
 
-If we built our CRDT to match the layout of our editor, we could get rid of that overhead. It turns out it has a lot of other benefits as well.
+If we could structure our CRDT to match the structure of our text editor, we would eliminate that overhead. It turns out it has a lot of other benefits as well.
 
 {: .center}
 ![crdt_table](/blogImgs/crdt_table.png)
 
-Search went from **O(log N)** — N being all the characters in the document — to **O(log L + log C)** — L being the total number of lines and C being the number of characters in that line.
+Search went from **O(log N)** — N being the number of characters in the document — to **O(log L + log C)** — L being the number of lines and C being the number of characters in that line.
 
-We were able to do this by using two binary searches - one to find the correct line and the other to find the character in that line.
+We implemented were able to do this by using two binary searches - one to find the correct line and the other to find the character in that line.
 
-In the case of inserting and deleting, the worst time complexity for linear arrays is **O(N)** due to shifting, but it’s only **O(C)** for two-dimensional arrays because only the characters in that line need to shifted.
+In the case of inserting and deleting, the worst-case time complexity for linear arrays is **O(N)** due to shifting, but it’s only **O(C)** for the two-dimensional array because only the characters in that line need to shifted.
 
-Finally, we were able to reduce the Find Index complexity from **O(N)** to **O(1)** because we can pass the position object that CodeMirror returns directly to the CRDT without any need of linearization or conversion.
+Finally, we were able to reduce the Find Index complexity from **O(N)** to **O(1)** because we can pass the position object that CodeMirror returns directly to the CRDT without any linearization.
 
-We even wrote test scripts and recorded how long it took each structure to complete the script. Here are the results:
+To test our theory, we wrote test scripts and recorded how long it took each structure to complete the script. Here are the results:
 
 {: .center}
 ![graph](/blogImgs/graph.png)
 
-Where it took our original CRDT upwards of 14 seconds to complete about 100 thousand operations, our improved two-dimensional structure can do it in less than a second.
-
-We were pretty happy with that.
+Where it took our original CRDT upwards of 14 seconds to complete about 100 thousand operations, our improved two-dimensional array structure can do it in less than a second. That's a drastic improvement.
 
 ---
 ### Peer-To-Peer Connection Management
 
-The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
+Our major optimizations had to do with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
-**Note:** We define *"network"* as the web of peer-to-peer connections. In this context, the *"network"* is only made up of the users collaborating on a document --  there are no servers.
+**Note:** We define *"network"* as all the users collaborating on a document, essentially the web of peer-to-peer connections for a particular document. Remember that in this context, the *"network"* is only made up of the users --  there are no servers.
 
-One problem we ran into was users getting stranded or cut off from the network. Say we have three users, like in the diagram below.
+An initial problem we ran into was users getting stranded or cut off from the network. Say we have three users, like in the diagram below.
 
 {: .center}
 ![network_3](/blogImgs/network_3.png)
 
-Peer 2 and Peer 3 are connected through Peer 1, who acts as the message relay.
-
-But what if Peer 1 leaves?
+Peer 2 and Peer 3 are connected through Peer 1, who acts as the message relay. But what if Peer 1 leaves?
 
 {: .center}
 ![network_cut](/blogImgs/network_cut.png)
 
-Now Peer 2 and Peer 3 are stranded and they can no longer collaborate.
-
-In order to resolve this situation, we need to have a way for peers to discover each other. So that's what we made.
+Peer 2 and Peer 3 are now stranded and they can no longer collaborate. To resolve this, we need a way for users to discover each other.
 
 #### Network List and Peer Discovery
 
-The solution we came up with was to have each peer keep a list of all the other users in the network. This list gets updated whenever users join and leave so that it’s always up to date.
+Our solution was to have each peer maintain a list of all the other users in the network. This network list of peers gets updated whenever a user joins and leave the network.
 
 {: .center}
 ![network_list](/blogImgs/network_list.png)
 
-This allows each user to know of all the other users, even if they’re not directly connected to each other. Now, if a user they are connected to leaves, they can pick someone random from the list and connect to them, allowing for the editing session to continue.
+This means that each user is aware of every ther user in the network, even if they’re not directly connected to them. So now if a user they are connected to leaves the network, they can pick someone from their network list and connect to them, allowing collaboration to continue.
 
 {: .center}
 ![peer_found](/blogImgs/peer_found.png)
 
-Is it possible to avoid a single point of failure in the first place? After all, that was part of the purpose of creating a peer-to-peer network.
+This is somewhat of a reactive solultion but could we be more proactive? Is it possible to avoid a single point of failure in the first place? After all, that was part of the purpose of creating a peer-to-peer network.
 
-#### Load Balancing
+#### Automatic Network Balancing
 
-Connections can be more evenly distributed if they are evaluated and load balanced as they come in. A maximum number of connections has to be set for each user. If a new person wants to join the network, they send a connection request first.
+In [Peer-to-Peer Architecture] (https://conclave-team.github.io/conclave-site/#peer-to-peer-architecture), we explained how users immediately connect to a user upon clicking that user's sharing link. The problem is that it's likely that the first user of a document is going to share their link with several users resulting in that single point-of-failure. Our p2p architecture ends up looking pretty much like the client-server architecture we wanted to move away from.
+
+Our solution was to add an evaluation step before connecting a new user to the network. When a new user attempts to join the document (or network), they send a connection request first.
 
 {: .center}
 ![conn_request](/blogImgs/conn_request.png)
 
-Whoever receives the request will evaluate it to see if they have reached the maximum number of connections. If they have, they will forward the request to someone else in the network. If they haven't, they will connect back.
+Whoever receives the request will evaluate it to see if they have reached their maximum number of connections. If the answer is yes, they will forward the request to another user in the network. If they haven't, they will accept the connection and connect back.
 
 ```javascript
   evaluateRequest(peerId, siteId) {
@@ -638,9 +630,9 @@ Whoever receives the request will evaluate it to see if they have reached the ma
 
 **What is the maximum number of connections?**
 
-To answer that question, we had to calculate what was the average number of connections we wanted every user to have. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues. We decided that a logarithmic scale (**O(log(N))**) was ideal.
+To answer that question, we had to calculate the average number of connections we wanted for every user. Since the network can grow and change, a fixed number (**O(1)**) would not be reliable. At the same time, having each user connected to every person in the network (**O(N)**) could cause bandwidth issues. We settled on a logarithmic scale (**O(log(N))**).
 
-However, through testing and trial-and-error, we discovered that a logarithmic scale can cause unusual bugs when the network is less than 5 users. Therefore, we use 5 connections as our baseline and when the network grows beyond the point, it switches back to logarithmic growth.
+However, through testing and trial-and-error, we discovered that this solutions causes unusual bugs when the network is less than 5 users. Therefore, we use 5 as our baseline and when the network grows beyond the point, it transitions to logarithmic growth.
 
 ```javascript
   hasReachedMax() {
@@ -651,12 +643,12 @@ However, through testing and trial-and-error, we discovered that a logarithmic s
   }
 ```
 
-Load balancing is not a perfect solution. While it does remove a single point of failure, it doesn't prevent bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
+This is far from a perfect solution. While we did reduce the chances of a single point of failure, it doesn't prevent bottlenecks from being formed.
 
 ---
 ### Editor Features
 
-At this point, our collaborative editor worked but it wasn't very usable. To fix this, we implemented a few critical features: remote cursors, video chat, and upload/download buttons.
+While our in-browser editor technically worked, it wasn't very user-friendly at all. To improve its usability, we implemented a few critical features: remote cursors, video chat, and upload/download.
 
 #### Remote Cursors
 
@@ -775,19 +767,17 @@ To prevent massive erasure and potential confusion, only a user who starts a new
 
 ## Future Plans
 
-This is an ongoing project and the Conclave Team has several plans in store.
-
 **Better Connection Distribution**
 
-The first thing to further improve would be the connection distribution for users in the network. A possibility we are entertaining is to have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drops and forces them to find a new peer.
+The first thing to further improve would be the connection distribution for users in the network. A possibility we are entertaining is to have new users connect to more than one user initially. This will prevent collaborators from becoming stranded if one of their connections drops and they are forced to find a new user to connect to.
 
 **Mass Insertions/Deletions**
 
-Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of large cuts and pastes (as well as uploads).
+Currently, our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of large cuts and pastes (as well as uploads).
 
-**P2P Network Automated Testing**
+**Automated P2P Network Testing**
 
-Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
+Testing the p2p nature of Conclave is difficult. The majority of our bugs were found through manual testing, which is inefficient and risky. In order to simulate real world latency scenarios, we would need to buy servers in data centers across the country and world. It's feasible but we don't currently have the resources to achieve such a feat.
 
 **Embeddable Browser Editor**
 
@@ -797,10 +787,8 @@ Testing the peer-to-peer nature of Conclave is difficult. The majority of our bu
 Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
 
 ---
-## Conclusion
+## Our Team
 
-We hope you enjoyed reading about our journey as much as we enjoyed the journey itself!
-
-All of us are available for new opportunities, so please feel free to reach out!
+We hope you enjoyed reading about our journey as much as we enjoyed the journey itself! We are all available for new opportunities, so please feel free to reach out!
 
 {% include team.html %}
