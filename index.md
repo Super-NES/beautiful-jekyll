@@ -118,19 +118,23 @@ OT was the first popular way to allow for collaborative editing. The first colla
 ---
 ## Conflict-Free Replicated Data Type (CRDT)
 
-An alternative strategy that was named **Conflict-Free Replicated Data Types (CRDT)** was discovered by researchers while trying to strengthen and simplify OT.
+An alternative strategy was discovered by researchers while trying to strengthen and simplify OT. They called it the **Conflict-Free Replicated Data Type (CRDT)**.
 
-Like a basic text editor, OT treats each character as having a value and an absolute position and relies purely on an algorithm to achieve commutativity and idempotency. CRDTs take a different approach. With the CRDT strategy, researchers realized that there's no reason to treat the characters as just having a value and absolute position.
+OT is implemented without changing the fundamental structure of a basic text editor. Like a basic editor, OT treats each character as having a value and an absolute position. And to achieve the commutativity and idempotency required by a collaborative text editor, OT relies primarily on an algorithm.
 
-Instead, you add properties to the character object that allow for the  commutativity and idempotency required by a collaborative text editor. By using a more complex data structure, CRDTs allow for a much simpler algorithm than OT. To use CRDTs for a collaborative text editor, there are a couple critical requirements.
+CRDTs take a different approach. Researchers realized that there's no reason to treat the characters as just having a value and absolute position; they set out to change the underlying data structure of the text editor. Instead, properties are added to each character object that enabled commutativity and idempotency. Using a more complex data structure allows for a much simpler algorithm than OT.
 
-**Note:** There are lots of different examples of CRDTs with different requirements for different use cases. In this context, a CRDT is primarily a strategy for achieving consistent data without any kind of coordination (e.g. transformation) between replicas of that data. Since a text document requires the characters to be in a specific order, this type of CRDT can be called an ordered set CRDT.
+**Note:** There are many different types of CRDTs with different requirements for different use cases. In this context, a CRDT is primarily a strategy for achieving consistent data between replicas of data without any kind of coordination (e.g. transformation) between the replicas. Since a text document requires the characters to be in a specific order, the type of CRDT that we used is usually categorized as a sequence CRDT.
+
+To use CRDTs specifically for a collaborative text editor, there are a couple critical requirements.
 
 ### Globally Unique Characters
 
-The 1st requirement is that each character object be globally unique. This is achieved by assigning **Site ID** and **Site Counter** properties when inserting a character. Since the **Site Counter** at each site increments every time it inserts or deletes a character, we've ensured global uniqueness of all characters.
+The 1st requirement is that each character object must be globally unique. This is achieved by assigning **Site ID** and **Site Counter** properties whenever a new character is inserted. Since the **Site Counter** at each site increments whenever inserting or deleting a character, we ensure the global uniqueness of all characters.
 
 With globally unique characters, when a user sends a message to another user to delete a character, it can indicate precisely which character to delete. Let's see how this changes our earlier example.
+
+**Note:** For the purpose of simplifying the example, the globally unique ids are just integers. In reality, they'll be objects with Site ID and Site Counter properties.
 
 <figure>
   <center>
@@ -141,15 +145,15 @@ With globally unique characters, when a user sends a message to another user to 
   </figcaption>
 </figure>
 
-By ensuring globally unique character objects, we've achieved idempotency of delete operations in our collaborative text editor.
+With our CRDT, when a user receives a delete operation from another user, it looks for a globally unique character to delete. And if it has already deleted that character, then there's nothing more it can delete. By ensuring globally unique character objects, we've achieved idempotency of delete operations.
 
 ### Globally Ordered Characters
 
-The 2nd requirement has to do with character positioning. Since we're building a text editor, we already know that the characters must be ordered within a document. But in addition to that, we need the characters to be globally ordered and consistent. That means that when a user inserts a character, it will be placed in the same position (relative to other characters) on every user's document.
+The 2nd requirement for a collaborative text editor CRDT has to do with the positioning of characters. Since we're building a text editor, preserving the order of characters within a text document is required. But for a collaborative text editor where each user has their own copy of the document, we must go a step further. We need all the characters to be globally ordered and consistent. That means that when a user inserts a character, it will be placed in the same position on every user's copy of the shared document.
 
-In our initial text editor example, we noted that when inserting or deleting a character, the positions of surrounding characters would sometimes need to be shifted accordingly. Since characters can be shifted by a user without the other users' knowledge, we can end up in a situation where insert and delete operations do not commute.
+In our initial text editor example, we noted that when inserting or deleting a character, the positions of surrounding characters would sometimes need to be shifted accordingly. And since characters can be shifted by a user without the other users' knowledge, we can end up in a situation where insert and delete operations do not commute.
 
-We can avoid this problem and ensure commutativity by using **fractional indices** as opposed to numerical indices. In the example below, when a user insert an "H" at position 1, they more specifically intend to insert an "H" in between "C" and "A".
+We can avoid this problem and ensure commutativity by using **fractional indices** as opposed to numerical indices. In the example below, when a user insert an "H" at position 1, they specifically intend to insert an "H" in between "C" and "A".
 
 <figure>
   <center>
@@ -160,7 +164,7 @@ We can avoid this problem and ensure commutativity by using **fractional indices
   </figcaption>
 </figure>
 
-Instead of inserting the “H” at position 1 (and forcing the succeeding characters to shift/increment their position indices), we insert the "H" at a position between 0 and 1 (e.g. 0.5). We represent fractional indices in code as a list of integers (or **position identifiers**). For example, `O.5` is represented as `[0, 5]`.
+Using fractional indices, instead of inserting “H” at position 1, we insert "H" at a position between 0 and 1 (e.g. 0.5). We represent fractional indices in code as a list of integers (or **position identifiers**). For example, `O.5` is represented as `[0, 5]`.
 
 <figure>
   <center>
@@ -170,6 +174,8 @@ Instead of inserting the “H” at position 1 (and forcing the succeeding chara
     <small><strong>Inserting a character at a position in between two existing characters.</strong></small>
   </figcaption>
 </figure>
+
+The key is that by using franctional indices to insert characters, we never have to shift the positions of surrounding characters.
 
 Another way to imagine fractional indices is as a tree. As characters are inserted into the document, they can be inserted in between two existing position identifiers at one level of the tree. However, if there is no space between two existing character positions, as demonstrated below, we proceed to the next level of the tree and pick an available position value from there.
 
@@ -202,7 +208,7 @@ If you're paying attention, you'll be wondering what happens if two users insert
 ---
 ## Coding the CRDT
 
-Talking about CRDTs in theory is well enough, but how does someone go about coding it? It's actually simpler than you might think.
+So how does someone go about coding a CRDT? It's simpler than you might think.
 
 A CRDT needs certain properties to be functional:
 * A globally unique SiteID
@@ -530,130 +536,16 @@ So at this point, we now have a peer-to-peer, real-time, collaborative text edit
 
 As our team began to use Conclave, we noticed  aspects of the user experience that could be improved. We broke these areas for improvement into three categories:
 
-1. Editor Features
-2. CRDT Structure
-3. Peer-To-Peer Connection Management
-
----
-### Editor Features
-
-At this point, our collaborative editor worked but it wasn't very usable. To fix this, we implemented a few critical features: remote cursors, video chat, and upload/download buttons.
-
-#### Remote Cursors
-
-Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
-
-That is the situation we ran into. Without a way to identify another person on the page, users would end up writing over each other and turning the real-time collaboration experience into a headache. We solved this problem with remote cursors.
-
-{: .center}
-![remote_cursors](/blogImgs/remote_cursors.png)
-
-Each user is represented by a cursor with a unique color/animal combination that identifies them and their cursor's current location in the document.
-
-However, implementing remote cursors in a decentralized environment poses a problem. Without a central database to keep track of each user's cursor, how do we keep the remote cursors consistent between all nodes while preventing different users from ending up with the same color?
-
-Ensuring that users have unique cursors was as simple as adding an animal name to the cursor and having a large number of possible color/animal combinations.
-
-{: .center}
-![combinations](/blogImgs/combinations.png)
-
-To address the consistency issue, we ended up creating a simple modulo hashing algorithm that would reduce each user's ID into an index that mapped to a animal and color pairing.
-
-```javascript
-  addRemoteCursor() {
-    // ...
-
-    const color = generateItemFromHash(this.siteId, CSS_COLORS);
-    const name = generateItemFromHash(this.siteId, ANIMALS);
-
-    // ...
-  }
-
-  function generateItemFromHash(siteId, collection) {
-    const hashIdx = hashAlgo(siteId, collection);
-
-    return collection[hashIdx];
-  }
-
-  function hashAlgo(input, collection) {
-    const filteredNum = input.toLowerCase().replace(/[a-z\-]/g, '');
-    return Math.floor(filteredNum * 13) % collection.length;
-  }
-```
-
----
-#### Video Chat
-
-Since we were already using WebRTC for our data communication, we realized it would be relatively easy to add video chat capabilities to our site. It's often easier to communicate verbally and sometimes it's just nice to see a face.
-
-{: .center}
-![video_chat](/blogImgs/video.png)
-
-Users can click on any animal name in their list of peers to place a call request. The receiving user is alerted and must click the animal name to answer the call. The video modal can be dragged around the screen and minimized with a click. Clicking the **x** ends the call and all media channels are closed. Each user can only be on a call with one other user at a time.
-
-```javascript
-  videoCall(id, ms) {
-    navigator.mediaDevices.getUserMedia({audio: true, video: true})
-    .then(ms => {
-      if (!currentStream) {
-        const callObj = peer.call(id, ms);
-        callObj.on('stream', stream => {
-          streamVideo(stream, callObj);
-          callObj.on('close', () => {
-            currentStream.localStream.getTracks().forEach(track => track.stop());
-            currentStream = null;
-          });
-        });
-      }
-    });
-  }
-```
-
-In order for WebRTC to detect the media devices (camera and speaker) of any computer trying to join a video call, the initial signaling must be conducted over HTTPS. This prompted us to switch our server configuration to support HTTPS, which was obviously a really good change.
-
-#### Download and Upload
-
-Since there is no server to store documents, we realized we needed to provide a way for users to save what they are working on to use elsewhere at another time. Creating download functionality was simple enough. Any user can download the current contents of the editor to their computers under a timestamped filename.
-
-```javascript
-  downloadButton.onclick = () => {
-    const text = editor.value();
-    const blob = new Blob([text], { type:"text/plain" });
-    const link = document.createElement("a");
-
-    link.style.display = "none";
-    link.download = "Conclave-"+Date.now();
-    link.href = window.URL.createObjectURL(blob);
-    link.onclick = e => document.body.removeChild(e.target);
-
-    document.body.appendChild(link);
-    link.click();
-  }
-```
-
-When the download button is clicked, the text in the editor is converted to a plain text blob object. An invisible link is created with its href property set to this blob as a URL and its download property set to the filename (Conclave and a timestamp). The link is added to the DOM, clicked, and then removed.
-
-On the other hand, what if someone wants to continue editing a file they downloaded earlier or start with something other than a blank document? We decided to add the ability to upload a file, also. To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users joining a collaboration session will not see the upload button.
-
-```javascript
-  fileSelect.onchange = () => {
-    const file = document.querySelector("#file").files[0];
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      const fileText = e.target.result;
-      localInsert(fileText, { line: 0, ch: 0 });
-      replaceText(crdt.toText());
-    }
-    fileReader.readAsText(file, "UTF-8");
-  }
-```
-
-We used javaScript's built-in FileReader to read the contents of the file selected for upload. The text is inserted into the user's CRDT and then the editor view is replaced entirely by the data in the CRDT. Updating the editor is fast but insertion into the data structure happens one character at a time, so large documents take quite a while. This is an area for future improvement.
+- CRDT Structure
+- Peer-To-Peer Connection Management
+- Editor Features
 
 ---
 ### CRDT Structure
 
-As mentioned in the **Coding the CRDT** section of this case study, we initially used a linear array as the base of our CRDT. This structure works fine for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
+https://conclave-team.github.io/conclave-site/#coding-a-crdt
+
+As mentioned in [Coding the CRDT)(https://conclave-team.github.io/conclave-site/#coding-a-crdt), we initially structured our CRDT as a linear array of characters. This works well for small documents but becomes very inefficient once the text reaches a larger size. This is mainly due to shifting all the characters in the array whenever an insertion or deletion is performed.
 
 Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character is inserted into or deleted from the editor, CodeMirror returns a position object that indicates which line that change was made on and the index on that line.
 
@@ -694,11 +586,7 @@ We were pretty happy with that.
 
 The third optimization we made was with how we managed WebRTC connections between users. While WebRTC allows users to connect directly to each other, it’s up to the developer to manage those connections and distribute them through the network.
 
----
-
-**Sidenote:** We define *"network"* as the web of peer-to-peer connections. In this context, the *"network"* is only made up of users --  there are no servers.
-
----
+**Note:** We define *"network"* as the web of peer-to-peer connections. In this context, the *"network"* is only made up of the users collaborating on a document --  there are no servers.
 
 One problem we ran into was users getting stranded or cut off from the network. Say we have three users, like in the diagram below.
 
@@ -776,6 +664,125 @@ However, through testing and trial-and-error, we discovered that a logarithmic s
 Load balancing is not a perfect solution. While it does remove a single point of failure, it doesn't prevent bottlenecks from being formed. There are further optimizations that can be made, which leads to the next section.
 
 ---
+### Editor Features
+
+At this point, our collaborative editor worked but it wasn't very usable. To fix this, we implemented a few critical features: remote cursors, video chat, and upload/download buttons.
+
+#### Remote Cursors
+
+Having several people edit a document at the same time can be a chaotic experience. It becomes even more hectic when you don't know who else is typing and where.
+
+That is the situation we ran into. Without a way to identify another person on the page, users would end up writing over each other and turning the real-time collaboration experience into a headache. We solved this problem with remote cursors.
+
+{: .center}
+![remote_cursors](/blogImgs/remote_cursors.png)
+
+Each user is represented by a cursor with a unique color/animal combination that identifies the user and their cursor's location in the document.
+
+Implementing remote cursors in a decentralized environment isn't trivial. Without a central database to keep track of each user's cursor, how do we keep the remote cursors combinations consistent among all users and prevent users from ending up with the same color/animal combinations?
+
+To address the consistency issue, we created a simple modulo hashing algorithm that reduces each user's unique **Site ID** into an index that maps to a color/animal combination.
+
+```javascript
+  addRemoteCursor() {
+    // ...
+
+    const color = generateItemFromHash(this.siteId, CSS_COLORS);
+    const name = generateItemFromHash(this.siteId, ANIMALS);
+
+    // ...
+  }
+
+  function generateItemFromHash(siteId, collection) {
+    const hashIdx = hashAlgo(siteId, collection);
+
+    return collection[hashIdx];
+  }
+
+  function hashAlgo(input, collection) {
+    const filteredNum = input.toLowerCase().replace(/[a-z\-]/g, '');
+    return Math.floor(filteredNum * 13) % collection.length;
+  }
+```
+
+With 221 possible animals and 210 possible colors, it's unlikely users will ever have the same color/animal combo.
+
+{: .center}
+![combinations](/blogImgs/combinations.png)
+
+#### Video Chat
+
+Since we're already using WebRTC to send text messages between users, we realized it'd be relatively simple to add video chat as well.
+
+{: .center}
+![video_chat](/blogImgs/video.png)
+
+To place a call, users click on any animal in their list of peers. The receiving user is alerted and can answer the call by clicking your animal in their list of peers. A video modal pops up on both screens and can be dragged around the screen to a more convenient location. Clicking the **x** ends the call and all WebRTC media channels are closed. At the moment, a user can only be on a video call with one other user at a time.
+
+```javascript
+  videoCall(id, ms) {
+    navigator.mediaDevices.getUserMedia({audio: true, video: true})
+    .then(ms => {
+      if (!currentStream) {
+        const callObj = peer.call(id, ms);
+        callObj.on('stream', stream => {
+          streamVideo(stream, callObj);
+          callObj.on('close', () => {
+            currentStream.localStream.getTracks().forEach(track => track.stop());
+            currentStream = null;
+          });
+        });
+      }
+    });
+  }
+```
+
+**Note:** In order for WebRTC to detect the media devices (camera and speaker) of any computer trying to join a video call, the initial signaling must be conducted over HTTPS.
+
+#### Download
+
+Since we eliminated the central relay server, there is no server to store a user's documents. We needed to provide a way for users to save what they were working on. Adding a download button was simple. Any user can click the **Download** button to save the current document text to their computer.
+
+```javascript
+  downloadButton.onclick = () => {
+    const text = editor.value();
+    const blob = new Blob([text], { type:"text/plain" });
+    const link = document.createElement("a");
+
+    link.style.display = "none";
+    link.download = "Conclave-"+Date.now();
+    link.href = window.URL.createObjectURL(blob);
+    link.onclick = e => document.body.removeChild(e.target);
+
+    document.body.appendChild(link);
+    link.click();
+  }
+```
+
+When the download button is clicked, the text in the editor is converted to a plain text blob object. An invisible link is created with its href property set to this blob as a URL and its download property set to the filename. The link is added to the DOM, clicked, and then removed.
+
+#### Upload
+
+In a similar vein, what if someone wants to continue editing a previously downloaded file or some existing document? To support this, we added the ability to upload a file.
+
+We used JavaScript's built-in FileReader to read the contents of the file selected for upload. The text is inserted into the user's CRDT and then their editor text is replaced entirely by the data in the CRDT. Updating the editor is fast but insertion into the data structure happens one character at a time, so large documents can take a while. This is an area for future improvement.
+
+
+```javascript
+  fileSelect.onchange = () => {
+    const file = document.querySelector("#file").files[0];
+    const fileReader = new FileReader();
+    fileReader.onload = (e) => {
+      const fileText = e.target.result;
+      localInsert(fileText, { line: 0, ch: 0 });
+      replaceText(crdt.toText());
+    }
+    fileReader.readAsText(file, "UTF-8");
+  }
+```
+To prevent massive erasure and potential confusion, only a user who starts a new document will have the option to upload. Users joining a collaboration session will not see the upload button.
+---
+
 ## Future Plans
 
 This is an ongoing project and the Conclave Team has several plans in store.
@@ -784,15 +791,15 @@ This is an ongoing project and the Conclave Team has several plans in store.
 
 The first thing to further improve would be the connection distribution for users in the network. A possibility we are entertaining is to have newcomers connect to more than one person initially. This will prevent collaborators from falling into limbo if one of their connections drops and forces them to find a new peer.
 
-**Mass insertions and deletions**
+**Mass Insertions/Deletions**
 
 Right now our CRDT can only insert and delete one character at a time. Being able to add or remove chunks of text at once will drastically improve overhead and improve the efficiency of large cuts and pastes (as well as uploads).
 
-**Automatic testing for P2P network**
+**P2P Network Automated Testing**
 
 Testing the peer-to-peer nature of Conclave is difficult. The majority of our bug finding has been through manual testing, which is inefficient and risky. Unfortunately, in order to simulate real world latency and scenarios, we would need to buy server space in data centers across the country and world. It is feasible, but we don't currently have the resources to achieve such a feat.
 
-**Embeddable browser editor**
+**Embeddable Browser Editor**
 
 {: .center}
 ![teletype](/blogImgs/teletype.png)
