@@ -11,7 +11,7 @@ use-site-title: true
 ![Conclave In Action](/img/conclave_in_action2.gif)
 
 ---
-## Introduction
+<h2>Introduction</h2>
 
 Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of the current academic literature and finally to our design and implementation of the final product.
 
