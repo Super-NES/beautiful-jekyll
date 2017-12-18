@@ -531,7 +531,7 @@ As our team began to use Conclave, we noticed  aspects of the user experience th
 ---
 ### CRDT Structure
 
-As mentioned in [Coding the CRDT](https://conclave-team.github.io/conclave-site/#coding-a-crdt), we initially structured our CRDT as a linear array of characters. This works well for small documents but becomes inefficient as the number of characters in a document grows. This is primarily due to shifting of the array that's required when splicing characters into and out of a linear array.
+As mentioned in [Coding the CRDT](https://conclave-team.github.io/conclave-site/#coding-the-crdt), we initially structured our CRDT as a linear array of characters. This works well for small documents but becomes inefficient as the number of characters in a document grows. This is primarily due to shifting of the array that's required when splicing characters into and out of a linear array.
 
 Another issue we ran into is the slow communication between our CodeMirror editor and our CRDT. Whenever a character was inserted into or deleted from the editor, CodeMirror returns a position object that indicates the line and character (i.e. row and column) on which that change was made in the editor.
 
@@ -600,7 +600,7 @@ This is somewhat of a reactive solultion but could we be more proactive? Is it p
 
 #### Automatic Network Balancing
 
-In [Peer-to-Peer Architecture] (https://conclave-team.github.io/conclave-site/#peer-to-peer-architecture), we explained how users immediately connect to a user upon clicking that user's sharing link. The problem is that it's likely that the first user of a document is going to share their link with several users resulting in that single point-of-failure. Our p2p architecture ends up looking pretty much like the client-server architecture we wanted to move away from.
+In [Peer-to-Peer Architecture](https://conclave-team.github.io/conclave-site/#peer-to-peer-architecture), we explained how users immediately connect to a user upon clicking that user's sharing link. The problem is that it's likely that the first user of a document is going to share their link with several users resulting in that single point-of-failure. Our p2p architecture ends up looking pretty much like the client-server architecture we wanted to move away from.
 
 Our solution was to add an evaluation step before connecting a new user to the network. When a new user attempts to join the document (or network), they send a connection request first.
 
@@ -781,10 +781,7 @@ Testing the p2p nature of Conclave is difficult. The majority of our bugs were f
 
 **Embeddable Browser Editor**
 
-{: .center}
-![teletype](/blogImgs/teletype.png)
-
-Finally, you may have heard of the recent release of GitHub’s Teletype. We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
+Finally, you may have heard of the recent release of [GitHub’s Teletype](https://teletype.atom.io). We were really excited about the news because it also utilizes WebRTC and CRDTs. Furthermore, it gave us the idea to create our own embeddable collaborative editor for the browser. It would not be too difficult to pull off so keep an eye out for that!
 
 ---
 ## Our Team
