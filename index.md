@@ -7,16 +7,19 @@ use-site-title: true
 
 [Click here](https://conclave-app.herokuapp.com/) to start using Conclave now!
 
----
-<h2> Table of Contents </h2>
-
-1. ToC
-{:toc}
+{: .center}
+![Conclave In Action](/imgs/conclave_in_action2.gif)
 
 ---
 ## Introduction
 
 Intrigued by collaborative text editors such as Google Docs, we set out to build our own from scratch. This case study walks you through our journey from the initial idea to our research of the current academic literature and finally to our design and implementation of the final product.
+
+---
+<h2> Table of Contents </h2>
+
+1. ToC
+{:toc}
 
 ---
 ## What is a text editor?
