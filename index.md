@@ -69,7 +69,7 @@ Oh no! One user has a "HAT" and the other user has a "CAT". In this particular e
 
 The reason that the users' document didn't converge is because the insert and delete operations were applied in different orders. In mathematical terms, the operations did not **commute**. For non-mathematicians like ourselves, let's review what commutativity means. Commutativity occurs when operations applied in different orders produce the same result. For example, addition is commutative because A + B = B + A. Subtraction, however, is not commutative because A - B != B - A.
 
-Let's try another example where the users simultaneously decide they want to delete the "H" from "CHAT" to get a "CAT".
+Let's try another example where the users simultaneously decide they want to delete the "H" from "HAT" to get a "AT".
 
 <figure>
   <center>
@@ -80,7 +80,7 @@ Let's try another example where the users simultaneously decide they want to del
   </figcaption>
 </figure>
 
-The documents **did converge** but we have another problem! Both users ended up with an "AT" instead of a "CAT", which neither of them wanted. In mathematical terms, the delete operations are not **idempotent**. What the heck does that mean? Idempotency occurs when repeated operations produce the same result. For example, multiplying by 1 is an idempotent operation. No matter how many times you multiply a number by 1, the result is the same.
+The documents **did converge** but we have another problem! Both users ended up with an "T" instead of a "AT", which neither of them wanted. In mathematical terms, the delete operations are not **idempotent**. What the heck does that mean? Idempotency occurs when repeated operations produce the same result. For example, multiplying by 1 is an idempotent operation. No matter how many times you multiply a number by 1, the result is the same.
 
 With our text editor use case, if both users try to insert the same letter in the same position at the same time, it's acceptable for the result to be two duplicate characters because it's easy to find and delete the unnecessary character. When it comes to deletes, however, the character is simply gone without a record of it ever existing; a user would have to remember the value and position of the character in order to insert it back in the document.
 
