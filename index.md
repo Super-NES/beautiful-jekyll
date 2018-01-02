@@ -12,6 +12,8 @@ use-site-title: true
 {: .center}
 ![Conclave In Action](/img/conclave_in_action3.gif)
 
+Note that the latest version of Chrome (63) introduced a bug that we are currently working on. If you want to try Conclave, consider using an older version of Chrome, Chrome Beta, or Firefox.
+
 ---
 <h2> Table of Contents </h2>
 
