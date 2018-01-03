@@ -591,7 +591,7 @@ Our solution was to have each peer maintain a list of all the other users in the
 {: .center}
 ![network_list](/blogImgs/network_list.png)
 
-This means that each user is aware of every ther user in the network, even if they’re not directly connected to them. So now if a user they are connected to leaves the network, they can pick someone from their network list and connect to them, allowing collaboration to continue.
+This means that each user is aware of every other user in the network, even if they’re not directly connected to them. So now if a user they are connected to leaves the network, they can pick someone from their network list and connect to them, allowing collaboration to continue.
 
 {: .center}
 ![peer_found](/blogImgs/peer_found.png)
