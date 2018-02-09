@@ -9,7 +9,7 @@ use-site-title: true
 
 [Click to start using Conclave now!](https://conclave-app.herokuapp.com/){:target="_blank"}
 
-*Please note that Chrome (v63) introduced a bug that we're currently working on. To try Conclave, please consider using Firefox, an older version of Chrome, or Chrome Beta (v64).*
+*Please note that Conclave works best in Google Chrome*
 
 {: .center}
 ![Conclave In Action](/img/conclave_in_action3.gif)
