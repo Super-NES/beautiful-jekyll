@@ -7,12 +7,12 @@ use-site-title: true
 
 [Conclave](https://conclave.tech/){:target="_blank"} is a peer-to-peer, real-time, collaborative text editor built from scratch in JavaScript. Intrigued by collaborative text editors such as Google Docs, we set out to build our own. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
 
-[Click here to start using Conclave now!](https://conclave.tech/){:target="_blank"}
+[Click to start using Conclave now!](https://conclave.tech/){:target="_blank"}
+
+*Please note that Conclave works best in Google Chrome*
 
 {: .center}
 ![Conclave In Action](/img/conclave_in_action3.gif)
-
-Note that the latest version of Chrome (63) introduced a bug that we are currently working on. If you want to try Conclave, consider using an older version of Chrome, Chrome Beta, or Firefox.
 
 ---
 <h2> Table of Contents </h2>
@@ -593,7 +593,7 @@ Our solution was to have each peer maintain a list of all the other users in the
 {: .center}
 ![network_list](/blogImgs/network_list.png)
 
-This means that each user is aware of every ther user in the network, even if they’re not directly connected to them. So now if a user they are connected to leaves the network, they can pick someone from their network list and connect to them, allowing collaboration to continue.
+This means that each user is aware of every other user in the network, even if they’re not directly connected to them. So now if a user they are connected to leaves the network, they can pick someone from their network list and connect to them, allowing collaboration to continue.
 
 {: .center}
 ![peer_found](/blogImgs/peer_found.png)
