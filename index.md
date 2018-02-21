@@ -5,9 +5,9 @@ subtitle: A private and secure real-time collaborative text editor
 use-site-title: true
 ---
 
-[Conclave](https://conclave.tech/){:target="_blank"} is a peer-to-peer, real-time, collaborative text editor built from scratch in JavaScript. Intrigued by collaborative text editors such as Google Docs, we set out to build our own. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
+[Conclave](https://www.conclave.tech/){:target="_blank"} is a peer-to-peer, real-time, collaborative text editor built from scratch in JavaScript. Intrigued by collaborative text editors such as Google Docs, we set out to build our own. This case study walks you through our journey from the initial idea to our research of current academic literature and finally to our design and implementation of the final product.
 
-[Click to start using Conclave now!](https://conclave.tech/){:target="_blank"}
+[Click to start using Conclave now!](https://www.conclave.tech/){:target="_blank"}
 
 *Please note that Conclave works best in Google Chrome*
 

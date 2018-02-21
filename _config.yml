@@ -25,7 +25,7 @@ description: A private and secure real-time collaborative text editor
 navbar-links:
   Case Study: ""
   Our Team: "team"
-  Try It!: "https://conclave.tech/"
+  Try It!: "https://www.conclave.tech/"
   Fork on GitHub: "https://github.com/conclave-team/conclave"
 
 # Image to show in the navigation bar - image must be a square (width = height)
